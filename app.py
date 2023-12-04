@@ -1,7 +1,6 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request
 from flask_cors import CORS
 import pandas as pd
-
 import akshare as ak
 import datetime
 
@@ -14,6 +13,7 @@ CORS(app)
 def hello_world():  # put application's code here
     return 'Hello World!'
 
+# 获取个股股票K线
 @app.route('/get_stock_k_line', methods = ["GET"])
 def get_stock_k_line():  # put application's code here
     # 可以通过 request 的 args 属性来获取参数
@@ -31,6 +31,7 @@ def get_stock_k_line():  # put application's code here
     response = stock_zh_a_hist_df.to_json(orient="records", force_ascii=False)
     return response
 
+# 获取每日涨停数据
 @app.route('/get_limitup_rank', methods = ["GET"])
 def get_limitup_rank():
 
@@ -50,8 +51,39 @@ def get_limitup_rank():
 
     # 对因子进行排名
     df['排名'] = df['复合因子'].rank(method="first")
-    # df = df[df['排名'] <= 5]
     response = df.to_json(orient="records", force_ascii=False)
     return response
+
+@app.route('/get_winners_list', methods = ["GET"])
+def getWinnersList():
+    start_date = request.args.get("start_date") or None
+    end_date = request.args.get("end_date") or None
+    if (not start_date or not end_date):
+        return '500'
+    stock_lhb_detail_em_df = ak.stock_lhb_detail_em(start_date=start_date, end_date=end_date)
+    df_combined = stock_lhb_detail_em_df.groupby('代码').agg({
+        '名称': 'first',
+        '上榜日': 'first',
+        '解读': 'first',
+        '收盘价': 'first',
+        '涨跌幅': 'first',
+        '龙虎榜净买额': 'first',
+        '龙虎榜买入额': 'first',
+        '龙虎榜卖出额': 'first',
+        '龙虎榜成交额': 'first',
+        '市场总成交额': 'first',
+        '净买额占总成交比': 'first',
+        '成交额占总成交比': 'first',
+        '换手率': 'first',
+        '流通市值': 'first',
+        '上榜原因': list,
+        '上榜后1日': 'first',
+        '上榜后2日': 'first',
+        '上榜后5日': 'first',
+        '上榜后10日': 'first',
+    }).reset_index()
+    response = df_combined.to_json(orient="records", force_ascii=False)
+    return response
+
 if __name__ == '__main__':
     app.run()
