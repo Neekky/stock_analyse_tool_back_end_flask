@@ -82,6 +82,8 @@ def getWinnersList():
         '上榜后5日': 'first',
         '上榜后10日': 'first',
     }).reset_index()
+    df_combined = df_combined[~df_combined['名称'].str.endswith('转债')]
+    df_combined = df_combined[~df_combined['代码'].str.startswith('8')]
     response = df_combined.to_json(orient="records", force_ascii=False)
     return response
 
