@@ -1,8 +1,12 @@
+import sys
+sys.path.append('/usr/src/stock_analyse_tool_back_end_flask')
+
 from flask import Flask, request
 from flask_cors import CORS
 import pandas as pd
 import akshare as ak
 import datetime
+from config import root_path
 
 singleToday = datetime.datetime.now().strftime("%Y%m%d")
 
@@ -40,7 +44,7 @@ def get_limitup_rank():
     if (not start_date):
         return '500'
 
-    df = pd.read_csv('/Users/cengchao/studyDocument/stock_analyse_tool_data_crawl/database/每日涨停/%s/今日涨停.csv' % start_date)
+    df = pd.read_csv(root_path + '/stock_analyse_tool_data_crawl/database/每日涨停/%s/今日涨停.csv' % start_date)
     df['涨停封单额排名'] = df['涨停封单额[%s]' % start_date].rank(ascending=False, method='min')
     df['涨停开板次数排名'] = df['涨停开板次数[%s]' % start_date].rank(ascending=True, method='dense')
     df['最终涨停时间排名'] = df['最终涨停时间[%s]' % start_date].rank(ascending=True, method='dense')
