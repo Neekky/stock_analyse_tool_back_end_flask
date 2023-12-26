@@ -30,8 +30,11 @@ def get_stock_k_line():  # put application's code here
     start_date = request.args.get("start_date") or None
     adjust = request.args.get("adjust") or ''
     end_date = request.args.get("end_date")
-    stock_zh_a_hist_df = ak.stock_zh_a_hist(symbol=symbol, period=period, start_date=start_date,
-                                            adjust=adjust)
+    print(symbol, period, start_date, adjust)
+
+    stock_zh_a_hist_df = ak.stock_zh_a_hist(symbol=symbol + '', period=period + '', start_date=start_date + '', adjust=adjust + '')
+    print("数据获取了" )
+
     response = stock_zh_a_hist_df.to_json(orient="records", force_ascii=False)
     return response
 
@@ -59,7 +62,7 @@ def get_limitup_rank():
     return response
 
 @app.route('/get_winners_list', methods = ["GET"])
-def getWinnersList():
+def get_winners_list():
     start_date = request.args.get("start_date") or None
     end_date = request.args.get("end_date") or None
     if (not start_date or not end_date):
@@ -90,6 +93,18 @@ def getWinnersList():
     df_combined = df_combined[~df_combined['代码'].str.startswith('8')]
     df_combined['code'] = df_combined['代码']
     response = df_combined.to_json(orient="records", force_ascii=False)
+    return response
+
+@app.route('/get_early_strategy_data', methods = ["GET"])
+def get_early_strategy_data():
+    start_date = request.args.get("start_date") or None
+
+    if (not start_date):
+        return '500'
+    
+    df = pd.read_csv(root_path + '/stock_analyse_tool_data_crawl/database/自研问句/%s/竞价连板筛选.csv' % start_date)
+    print(df, 123)
+    response = df.to_json(orient="records", force_ascii=False)
     return response
 
 if __name__ == '__main__':
