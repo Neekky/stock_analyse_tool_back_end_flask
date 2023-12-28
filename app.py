@@ -30,10 +30,14 @@ def get_stock_k_line():  # put application's code here
     start_date = request.args.get("start_date") or None
     adjust = request.args.get("adjust") or ''
     end_date = request.args.get("end_date")
-    print(symbol, period, start_date, adjust)
+    is_head_end = request.args.get("is_head_end")
 
-    stock_zh_a_hist_df = ak.stock_zh_a_hist(symbol=symbol + '', period=period + '', start_date=start_date + '', adjust=adjust + '')
-    print("数据获取了" )
+    stock_zh_a_hist_df = ak.stock_zh_a_hist(symbol=symbol + '', period=period + '', start_date=start_date + '', end_date=end_date + '', adjust=adjust + '')
+
+    # 如果is_head_end为1，则只保留第一行和最后一行 
+    if (is_head_end == '1' and stock_zh_a_hist_df.shape[0] > 1):
+        # 只保留stock_zh_a_hist_df的第一行和最后一行
+        stock_zh_a_hist_df = stock_zh_a_hist_df.iloc[[0, -1]]
 
     response = stock_zh_a_hist_df.to_json(orient="records", force_ascii=False)
     return response
