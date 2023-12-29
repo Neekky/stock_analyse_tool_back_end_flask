@@ -3,7 +3,7 @@ name: Deploy Flask Application
 on:
   push:
     branches:
-      - master  # 或者你用于生产的任何分支
+      - cancle  # 暂时不用，或者你用于生产的任何分支
 
 jobs:
   deploy:
