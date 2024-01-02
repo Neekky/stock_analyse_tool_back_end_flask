@@ -27,13 +27,13 @@ def get_stock_k_line():  # put application's code here
         return 404
 
     period = request.args.get("period") or 'daily'
-    start_date = request.args.get("start_date") or None
+    start_date = request.args.get("start_date") or ''
     adjust = request.args.get("adjust") or ''
-    end_date = request.args.get("end_date")
+    end_date = request.args.get("end_date") or ''
     is_head_end = request.args.get("is_head_end")
 
     stock_zh_a_hist_df = ak.stock_zh_a_hist(symbol=symbol + '', period=period + '', start_date=start_date + '', end_date=end_date + '', adjust=adjust + '')
-
+    print(symbol, period, start_date, end_date)
     # 如果is_head_end为1，则只保留第一行和最后一行 
     if (is_head_end == '1' and stock_zh_a_hist_df.shape[0] > 1):
         # 只保留stock_zh_a_hist_df的第一行和最后一行
@@ -107,8 +107,8 @@ def get_early_strategy_data():
         return '500'
     
     df = pd.read_csv(root_path + '/stock_analyse_tool_data_crawl/database/自研问句/%s/竞价连板筛选.csv' % start_date)
-    print(df, 123)
     response = df.to_json(orient="records", force_ascii=False)
+    print(response, 123)
     return response
 
 if __name__ == '__main__':
