@@ -3,10 +3,6 @@ from app.models.stock_data import StockData
 
 stock_data_bp = Blueprint('stock_data', __name__)
 
-@stock_data_bp.route.route('/')
-def hello_world():  # put application's code here
-    return 'Hello World!'
-
 # 获取个股股票K线
 @stock_data_bp.route('/get_stock_k_line', methods = ["GET"])
 def get_stock_k_line():  # put application's code here
