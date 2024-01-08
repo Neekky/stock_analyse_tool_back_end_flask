@@ -1,7 +1,7 @@
 from flask import Flask
 from config import Config
 from .blueprints.main import main_bp
-from .blueprints.auth import auth_bp
+from .blueprints.stock_data import stock_data_bp
 from flask_cors import CORS
 
 def create_app(config_class=Config):
