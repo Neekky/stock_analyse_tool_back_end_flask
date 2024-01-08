@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template
 from app.models.stock_data import StockData
+from flask import Flask, request
 
 stock_data_bp = Blueprint('stock_data', __name__)
 
