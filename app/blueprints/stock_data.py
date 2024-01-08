@@ -1,8 +1,8 @@
 import sys
 sys.path.append('/usr/src/stock_analyse_tool_back_end_flask')
-from flask import Blueprint, render_template
+from flask import Blueprint
 from app.models.stock_data import StockData
-from flask import Flask, request
+from flask import request
 import pandas as pd
 import akshare as ak
 import datetime
@@ -28,8 +28,7 @@ def get_stock_k_line():  # put application's code here
     is_head_end = request.args.get("is_head_end")
 
     stock_zh_a_hist_df = ak.stock_zh_a_hist(symbol=symbol + '', period=period + '', start_date=start_date + '', end_date=end_date + '', adjust=adjust + '')
-    print(symbol, period, start_date, end_date)
-    # 如果is_head_end为1，则只保留第一行和最后一行 
+    # 如果is_head_end为1，则只保留第一行和最后一行
     if (is_head_end == '1' and stock_zh_a_hist_df.shape[0] > 1):
         # 只保留stock_zh_a_hist_df的第一行和最后一行
         stock_zh_a_hist_df = stock_zh_a_hist_df.iloc[[0, -1]]
@@ -103,5 +102,4 @@ def get_early_strategy_data():
     
     df = pd.read_csv(root_path + '/stock_analyse_tool_data_crawl/database/自研问句/%s/竞价连板筛选.csv' % start_date)
     response = df.to_json(orient="records", force_ascii=False)
-    print(response, 123)
     return response
