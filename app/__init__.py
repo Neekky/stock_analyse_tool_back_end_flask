@@ -15,7 +15,7 @@ def create_app():
     # db.init_app(app)
     
     # 注册蓝图
-    # app.register_blueprint(main_bp)
-    # app.register_blueprint(stock_data_bp, url_prefix='/auth')
+    app.register_blueprint(main_bp)
+    app.register_blueprint(stock_data_bp)
     
     return app
