@@ -2,11 +2,13 @@ from flask import Flask
 from config import Config
 from .blueprints.main import main_bp
 from .blueprints.auth import auth_bp
+from flask_cors import CORS
 
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
-    
+    CORS(app)
+
     # 初始化数据库
     from app.models import db
     db.init_app(app)
