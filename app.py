@@ -9,7 +9,7 @@ from config import root_path
 
 singleToday = datetime.datetime.now().strftime("%Y%m%d")
 
-app = create_app()
+flask_app = create_app()
 
 @app.route('/')
 def hello_world():  # put application's code here
@@ -110,4 +110,4 @@ def get_early_strategy_data():
     return response
 
 if __name__ == '__main__':
-    app.run()
+    flask_app.run()
