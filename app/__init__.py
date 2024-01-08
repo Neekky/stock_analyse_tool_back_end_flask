@@ -4,7 +4,8 @@ from .blueprints.main import main_bp
 from .blueprints.stock_data import stock_data_bp
 from flask_cors import CORS
 
-def create_app(config_class=Config):
+# def create_app(config_class=Config):
+def create_app():
     app = Flask(__name__)
     # app.config.from_object(config_class)
     CORS(app)
