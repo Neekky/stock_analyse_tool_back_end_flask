@@ -1,6 +1,14 @@
+import sys
+sys.path.append('/usr/src/stock_analyse_tool_back_end_flask')
 from flask import Blueprint, render_template
 from app.models.stock_data import StockData
 from flask import Flask, request
+import pandas as pd
+import akshare as ak
+import datetime
+from config import root_path
+
+singleToday = datetime.datetime.now().strftime("%Y%m%d")
 
 stock_data_bp = Blueprint('stock_data', __name__)
 
