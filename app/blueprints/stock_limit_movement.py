@@ -1,8 +1,16 @@
+import sys
+sys.path.append('/usr/src/stock_analyse_tool_back_end_flask')
+import pandas as pd
+import akshare as ak
+import datetime
+from config import root_path
+import pywencai
+import json
 from flask import Blueprint, jsonify, request
 from app import db
 from app.models.stock_limit_movement import StockLimitMovement
 
-bp_stock = Blueprint('bp_stock', __name__)
+stock_limit_movement_bp = Blueprint('stock_limit_movement', __name__, url_prefix='/stock_limit_movement')
 
 @bp_stock.route('/add_movements', methods=['POST'])
 def add_movements():
