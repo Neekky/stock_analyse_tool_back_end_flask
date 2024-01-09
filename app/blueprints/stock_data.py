@@ -1,3 +1,4 @@
+import os
 import sys
 sys.path.append('/usr/src/stock_analyse_tool_back_end_flask')
 from flask import Blueprint
@@ -103,3 +104,68 @@ def get_early_strategy_data():
     df = pd.read_csv(root_path + '/stock_analyse_tool_data_crawl/database/自研问句/%s/竞价连板筛选.csv' % start_date)
     response = df.to_json(orient="records", force_ascii=False)
     return response
+
+@stock_data_bp.route('/get_limitup_diff', methods = ["GET"])
+def get_limitup_diff():
+    date = request.args.get("date") or None
+
+    if (not date):
+        return '500'
+
+    # 假设csv文件夹的路径如下
+    base_path = root_path + '/stock_analyse_tool_data_crawl/database/每日涨停'
+
+    # 读取文件夹下所有的子文件夹名称（日期）
+    available_dates = [name for name in os.listdir(base_path)
+                       if os.path.isdir(os.path.join(base_path, name))]
+
+    # 保证日期列表有序，以便查找前一天的数据
+    available_dates.sort()
+
+    # 找到目标日期在列表中的索引位置
+    try:
+        current_index = available_dates.index(date)
+    except ValueError:
+        print(f"No data found for the target date: {date}")
+        current_index = None
+
+    if current_index is not None:
+        # 读取目标日期的CSV数据
+        target_path = base_path
+        limitup_1_path = target_path + '/1板.csv'
+        limitup_2_path = target_path + '/2板.csv'
+        limitup_3_path = target_path + '/3板.csv'
+        limitup_4_path = target_path + '/4板.csv'
+
+        target_data = read_csv_data(target_path)
+
+        # 查找并读取上一有效日期的CSV数据
+        previous_data = None
+        for previous_index in range(current_index - 1, -1, -1):
+            previous_date_str = available_dates[previous_index]
+            previous_path = os.path.join(base_path, previous_date_str)
+            limitup_1_previous_path = previous_path + '/1板.csv'
+            previous_data = read_csv_data(limitup_1_previous_path)
+
+            print(previous_date_str)
+            if previous_data is not None:
+                break
+
+        # 在这里，你可以进行数据处理，例如合并两天的数据
+        if previous_data is not None and target_data is not None:
+            # combined_data = pd.concat([previous_data, target_data])
+            # 使用combined_data进行后续的数据处理
+            return previous_data
+        else:
+            print("Unable to find data for the previous working day.")
+
+# 定义一个函数来读取指定路径下所有CSV文件的数据
+def read_csv_data(folder_path):
+    all_files = os.listdir(folder_path)
+    data_frames = []
+    for file_name in all_files:
+        if file_name.endswith('.csv'):
+            file_path = os.path.join(folder_path, file_name)
+            df = pd.read_csv(file_path)
+            data_frames.append(df)
+    return pd.concat(data_frames) if data_frames else None
