@@ -113,7 +113,7 @@ def get_limitup_diff():
         return '500'
 
     # 假设csv文件夹的路径如下
-    base_path = root_path + '/stock_analyse_tool_data_crawl/database/每日涨停'
+    base_path = root_path + '/stock_analyse_tool_data_crawl/database/每日涨停/'
 
     # 读取文件夹下所有的子文件夹名称（日期）
     available_dates = [name for name in os.listdir(base_path)
@@ -130,42 +130,60 @@ def get_limitup_diff():
         current_index = None
 
     if current_index is not None:
-        # 读取目标日期的CSV数据
+        current_date_str = available_dates[current_index]
+
+        previous_date_str = available_dates[current_index - 1]
+
+        # 拼接目标日期的CSV数据地址
         target_path = base_path
-        limitup_1_path = target_path + '/1板.csv'
-        limitup_2_path = target_path + '/2板.csv'
-        limitup_3_path = target_path + '/3板.csv'
-        limitup_4_path = target_path + '/4板.csv'
+        limitup_1_path = target_path + current_date_str + '/1板.csv'
+        limitup_2_path = target_path + current_date_str + '/2板.csv'
+        limitup_3_path = target_path + current_date_str + '/3板.csv'
+        limitup_4_path = target_path + current_date_str + '/4板.csv'
 
-        target_data = read_csv_data(target_path)
+        # 拼接目标前一日日期的CSV数据地址
+        limitup_1_pre_path = target_path + previous_date_str + '/1板.csv'
+        limitup_2_pre_path = target_path + previous_date_str + '/2板.csv'
+        limitup_3_pre_path = target_path + previous_date_str + '/3板.csv'
+        limitup_4_pre_path = target_path + previous_date_str + '/4板.csv'
 
-        # 查找并读取上一有效日期的CSV数据
-        previous_data = None
-        for previous_index in range(current_index - 1, -1, -1):
-            previous_date_str = available_dates[previous_index]
-            previous_path = os.path.join(base_path, previous_date_str)
-            limitup_1_previous_path = previous_path + '/1板.csv'
-            previous_data = read_csv_data(limitup_1_previous_path)
+        l1df = read_csv_with_fallback(limitup_1_path)
+        l2df = read_csv_with_fallback(limitup_2_path)
+        l3df = read_csv_with_fallback(limitup_3_path)
+        l4df = read_csv_with_fallback(limitup_4_path)
 
-            print(previous_date_str)
-            if previous_data is not None:
-                break
+        l1pdf = read_csv_with_fallback(limitup_1_pre_path)
+        l2pdf = read_csv_with_fallback(limitup_2_pre_path)
+        l3pdf = read_csv_with_fallback(limitup_3_pre_path)
+        l4pdf = read_csv_with_fallback(limitup_4_pre_path)
 
-        # 在这里，你可以进行数据处理，例如合并两天的数据
-        if previous_data is not None and target_data is not None:
-            # combined_data = pd.concat([previous_data, target_data])
-            # 使用combined_data进行后续的数据处理
-            return previous_data
-        else:
-            print("Unable to find data for the previous working day.")
+        oneToTwoRate = round(l2df.shape[0] / l1pdf.shape[0], 2)
+        twoToThreeRate = round(l3df.shape[0] / l2pdf.shape[0], 2)
 
-# 定义一个函数来读取指定路径下所有CSV文件的数据
-def read_csv_data(folder_path):
-    all_files = os.listdir(folder_path)
-    data_frames = []
-    for file_name in all_files:
-        if file_name.endswith('.csv'):
-            file_path = os.path.join(folder_path, file_name)
-            df = pd.read_csv(file_path)
-            data_frames.append(df)
-    return pd.concat(data_frames) if data_frames else None
+        # 处理更多板，需要将重复的去掉
+        merged_df = l4df.merge(l4pdf, how='outer', on='股票简称', indicator=True)
+        filtered_df_A = merged_df[merged_df['_merge'] == 'left_only'].drop(columns=['_merge'])
+        threeToMoreRate = round(filtered_df_A.shape[0] / l3pdf.shape[0], 2)
+
+        resMap = {
+            'oneToTwoRate': oneToTwoRate,
+            'oneToTwoCount': l2df.shape[0],
+            'twoToThreeRate': twoToThreeRate,
+            'twoToThreeCount': l3df.shape[0],
+            'threeToMoreRate': threeToMoreRate,
+            'threeToMoreCount': l4df.shape[0],
+        }
+        print(resMap)
+
+        return resMap, 200
+
+    return 500
+
+def read_csv_with_fallback(file_path):
+    try:
+        # 尝试读取CSV文件
+        df = pd.read_csv(file_path)
+    except Exception as e:  # 捕获所有可能的异常
+        print(f"Error reading {file_path}: {e}")  # 打印错误信息
+        df = pd.DataFrame()  # 创建一个空的DataFrame
+    return df
