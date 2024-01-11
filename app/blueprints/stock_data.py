@@ -157,25 +157,37 @@ def get_limitup_diff():
         l3pdf = read_csv_with_fallback(limitup_3_pre_path)
         l4pdf = read_csv_with_fallback(limitup_4_pre_path)
 
-        oneToTwoRate = round(l2df.shape[0] / l1pdf.shape[0], 2)
-        twoToThreeRate = round(l3df.shape[0] / l2pdf.shape[0], 2)
+        oneToTwoRate = round(l2df.shape[0] / l1pdf.shape[0] * 100)
+        twoToThreeRate = round(l3df.shape[0] / l2pdf.shape[0] * 100)
 
         # 处理更多板，需要将重复的去掉
         merged_df = l4df.merge(l4pdf, how='outer', on='股票简称', indicator=True)
         filtered_df_A = merged_df[merged_df['_merge'] == 'left_only'].drop(columns=['_merge'])
-        threeToMoreRate = round(filtered_df_A.shape[0] / l3pdf.shape[0], 2)
+        threeToMoreRate = round(filtered_df_A.shape[0] / l3pdf.shape[0] * 100)
+
+        # 计算一板数量增减幅度
+        oneRate = round((l1df.shape[0] - l1pdf.shape[0]) / l1df.shape[0] * 100)
 
         resMap = {
+            'oneCount': l1df.shape[0],
             'oneToTwoRate': oneToTwoRate,
             'oneToTwoCount': l2df.shape[0],
+            'oneRate': oneRate,
             'twoToThreeRate': twoToThreeRate,
             'twoToThreeCount': l3df.shape[0],
             'threeToMoreRate': threeToMoreRate,
             'threeToMoreCount': l4df.shape[0],
+            'yestdOneCount': l1pdf.shape[0],
+            'yestdTwoCount': l2pdf.shape[0],
+            'yestdThreeCount': l3pdf.shape[0],
+            'yestdMoreCount': l4pdf.shape[0],
         }
-        print(resMap)
+        data = {
+            'data': resMap,
+            'code': 200,
+        }
 
-        return resMap, 200
+        return data, 200
 
     return 500
 
