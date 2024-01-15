@@ -11,10 +11,10 @@ import json
 
 singleToday = datetime.datetime.now().strftime("%Y%m%d")
 
-stock_info_bp = Blueprint('stock_info', __name__, url_prefix='/stock_info')
+all_info_bp = Blueprint('stock_info', __name__, url_prefix='/all_info')
 
 # 个股的基本面怎么样
-@stock_info_bp.route('/fundamentals', methods = ["GET"])
+@all_info_bp.route('/fundamentals', methods = ["GET"])
 def get_stock_fundamentals():
     name = request.args.get("name") or ''
 
@@ -29,8 +29,6 @@ def get_stock_fundamentals():
     evaluate = res['container']['txt1']
     capacity = res['container']['newRadar'].to_json(orient="records", force_ascii=False)
 
-    print(type(fundTxt), 'res')
-
     res_dict = {
         'fundTxt': fundTxt,
         'evaluate': evaluate,
@@ -40,3 +38,22 @@ def get_stock_fundamentals():
     result = jsonify(res_dict)
 
     return result, 200, {'mimetype': 'application/json'}
+
+@all_info_bp.route('/hot_plate_data', methods = ["GET"])
+def get_hot_plate_data():
+    trade_date = request.args.get("date") or singleToday
+
+    if (not trade_date):
+        return 404
+
+    df = pd.DataFrame()
+
+    try:
+        df = pd.read_csv(root_path + '/stock_analyse_tool_data_crawl/database/自研问句/%s/热门板块.csv' % trade_date)
+    except Exception as e:
+        print(e)
+
+    response = df.to_json(orient="records", force_ascii=False)
+
+    return response, 200
+

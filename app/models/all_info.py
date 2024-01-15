@@ -5,3 +5,4 @@ class StockData(db.Model):
     username = db.Column(db.String(64), index=True, unique=True)
     # ... 其他字段和方法
 
+

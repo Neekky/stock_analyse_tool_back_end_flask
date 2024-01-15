@@ -105,6 +105,7 @@ def get_early_strategy_data():
     response = df.to_json(orient="records", force_ascii=False)
     return response
 
+# 获取今日昨日涨停板晋级情况
 @stock_data_bp.route('/get_limitup_diff', methods = ["GET"])
 def get_limitup_diff():
     date = request.args.get("date") or None
