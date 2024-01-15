@@ -25,17 +25,25 @@ def get_stock_fundamentals():
     # 首选方式问财
     res = pywencai.get(query=query)
 
+    print(res.keys(), res['行业排名'].keys(), res['行业排名']['营业收入'])
+
     fundTxt = res['container']['fundTxt'].to_json(orient="records", force_ascii=False)
-    evaluate = res['container']['txt1']
-    capacity = res['container']['newRadar'].to_json(orient="records", force_ascii=False)
+    evaluate = res['txt1']
+    capacity = res['txt2']
+    baseView = res['基本面看点']
+    video1 = res['video1']
+    rank = res['行业排名']
 
     res_dict = {
         'fundTxt': fundTxt,
         'evaluate': evaluate,
-        'capacity': capacity
+        'capacity': capacity,
+        'baseView': baseView,
+        'video1': video1,
+        'rank': jsonify(rank)
     }
 
-    result = jsonify(res_dict)
+    result = jsonify(res)
 
     return result, 200, {'mimetype': 'application/json'}
 
