@@ -61,7 +61,12 @@ def get_hot_plate_data():
     except Exception as e:
         print(e)
 
-    response = df.to_json(orient="records", force_ascii=False)
+    jsonDf = df.to_json(orient="records", force_ascii=False)
 
+    response = {
+        'data': jsonDf,
+        'code': 200,
+        'msg': '成功'
+    }
     return response, 200
 
