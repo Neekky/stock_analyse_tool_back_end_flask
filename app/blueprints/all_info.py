@@ -1,4 +1,6 @@
 import sys
+
+
 sys.path.append('/usr/src/stock_analyse_tool_back_end_flask')
 from flask import Blueprint, request, Response, jsonify
 from app.models.stock_data import StockData
@@ -7,6 +9,7 @@ import akshare as ak
 import datetime
 from config import root_path
 import pywencai
+from app.utils.index import requestForNew
 import json
 
 singleToday = datetime.datetime.now().strftime("%Y%m%d")
@@ -69,4 +72,57 @@ def get_hot_plate_data():
         'msg': '成功'
     }
     return response, 200
+
+# 获取热门板块的龙头股
+@all_info_bp.route('/hot_plate_stock_data', methods = ["GET"])
+def get_hot_plate_stock_data():
+    pid = request.args.get("pid") or None
+
+    if (not pid):
+        return {
+            'data': [],
+            'code': 500,
+            'msg': '未传递板块id'
+        }
+
+    content = requestForNew('https://eq.10jqka.com.cn/plateTimeSharing/plateIndexData/%s.txt' % pid).json()
+    df = pd.DataFrame()
+
+    if not content:
+        response = {
+            'data': [],
+            'code': 500,
+            'msg': '无数据'
+        }
+        return response
+
+    print(content)
+    response = {
+        'data': content,
+        'code': 200,
+        'msg': '成功'
+    }
+
+    return response, 200
+
+@all_info_bp.route('/all_stock_list', methods = ["GET"])
+def get_all_stock_list():
+    stock_zh_a_spot_em_df = ak.stock_zh_a_spot_em()
+
+    data = stock_zh_a_spot_em_df.to_json(orient="records", force_ascii=False)
+
+    if (not data):
+        return {
+            'data': [],
+            'code': 500,
+            'msg': '无数据'
+        }
+
+    response = {
+        'data': data,
+        'code': 200,
+        'msg': '成功'
+    }
+    return response
+
 
