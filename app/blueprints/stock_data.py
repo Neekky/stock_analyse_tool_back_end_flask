@@ -1,5 +1,6 @@
 import os
 import sys
+
 sys.path.append('/usr/src/stock_analyse_tool_back_end_flask')
 from flask import Blueprint
 from app.models.stock_data import StockData
@@ -13,8 +14,9 @@ singleToday = datetime.datetime.now().strftime("%Y%m%d")
 
 stock_data_bp = Blueprint('stock_data', __name__)
 
+
 # 获取个股股票K线
-@stock_data_bp.route('/get_stock_k_line', methods = ["GET"])
+@stock_data_bp.route('/get_stock_k_line', methods=["GET"])
 def get_stock_k_line():  # put application's code here
     # 可以通过 request 的 args 属性来获取参数
     symbol = request.args.get("symbol") or ''
@@ -28,7 +30,8 @@ def get_stock_k_line():  # put application's code here
     end_date = request.args.get("end_date") or ''
     is_head_end = request.args.get("is_head_end")
 
-    stock_zh_a_hist_df = ak.stock_zh_a_hist(symbol=symbol + '', period=period + '', start_date=start_date + '', end_date=end_date + '', adjust=adjust + '')
+    stock_zh_a_hist_df = ak.stock_zh_a_hist(symbol=symbol + '', period=period + '', start_date=start_date + '',
+                                            end_date=end_date + '', adjust=adjust + '')
     # 如果is_head_end为1，则只保留第一行和最后一行
     if (is_head_end == '1' and stock_zh_a_hist_df.shape[0] > 1):
         # 只保留stock_zh_a_hist_df的第一行和最后一行
@@ -37,10 +40,10 @@ def get_stock_k_line():  # put application's code here
     response = stock_zh_a_hist_df.to_json(orient="records", force_ascii=False)
     return response
 
-# 获取每日涨停数据
-@stock_data_bp.route('/get_limitup_rank', methods = ["GET"])
-def get_limitup_rank():
 
+# 获取每日涨停数据
+@stock_data_bp.route('/get_limitup_rank', methods=["GET"])
+def get_limitup_rank():
     start_date = request.args.get("start_date") or None
 
     if (not start_date):
@@ -53,14 +56,16 @@ def get_limitup_rank():
     df['连续涨停天数排名'] = df['连续涨停天数[%s]' % start_date].rank(ascending=True, method='dense')
     df['a股市值排名'] = df['a股市值(不含限售股)[%s]' % start_date].rank(ascending=True, method='dense')
 
-    df['复合因子'] = df['涨停封单额排名'] + df['涨停开板次数排名'] + df['最终涨停时间排名'] + df['连续涨停天数排名'] + df['a股市值排名']
+    df['复合因子'] = df['涨停封单额排名'] + df['涨停开板次数排名'] + df['最终涨停时间排名'] + df['连续涨停天数排名'] + \
+                     df['a股市值排名']
 
     # 对因子进行排名
     df['排名'] = df['复合因子'].rank(method="first")
     response = df.to_json(orient="records", force_ascii=False)
     return response
 
-@stock_data_bp.route('/get_winners_list', methods = ["GET"])
+
+@stock_data_bp.route('/get_winners_list', methods=["GET"])
 def get_winners_list():
     start_date = request.args.get("start_date") or None
     end_date = request.args.get("end_date") or None
@@ -94,19 +99,21 @@ def get_winners_list():
     response = df_combined.to_json(orient="records", force_ascii=False)
     return response
 
-@stock_data_bp.route('/get_early_strategy_data', methods = ["GET"])
+
+@stock_data_bp.route('/get_early_strategy_data', methods=["GET"])
 def get_early_strategy_data():
     start_date = request.args.get("start_date") or None
 
     if (not start_date):
         return '500'
-    
+
     df = pd.read_csv(root_path + '/stock_analyse_tool_data_crawl/database/自研问句/%s/竞价连板筛选.csv' % start_date)
     response = df.to_json(orient="records", force_ascii=False)
     return response
 
+
 # 获取今日昨日涨停板晋级情况
-@stock_data_bp.route('/get_limitup_diff', methods = ["GET"])
+@stock_data_bp.route('/get_limitup_diff', methods=["GET"])
 def get_limitup_diff():
     date = request.args.get("date") or None
 
@@ -158,16 +165,29 @@ def get_limitup_diff():
         l3pdf = read_csv_with_fallback(limitup_3_pre_path)
         l4pdf = read_csv_with_fallback(limitup_4_pre_path)
 
-        oneToTwoRate = round(l2df.shape[0] / l1pdf.shape[0] * 100)
-        twoToThreeRate = round(l3df.shape[0] / l2pdf.shape[0] * 100)
+        try:
+            oneToTwoRate = round(l2df.shape[0] / l1pdf.shape[0] * 100)
+        except Exception as e:  # 捕获所有可能的异常
+            oneToTwoRate = round(l2df.shape[0] * 100)
+
+        try:
+            twoToThreeRate = round(l3df.shape[0] / l2pdf.shape[0] * 100)
+        except Exception as e:  # 捕获所有可能的异常
+            twoToThreeRate = round(l3df.shape[0] * 100)
 
         # 处理更多板，需要将重复的去掉
-        merged_df = l4df.merge(l4pdf, how='outer', on='股票简称', indicator=True)
-        filtered_df_A = merged_df[merged_df['_merge'] == 'left_only'].drop(columns=['_merge'])
-        threeToMoreRate = round(filtered_df_A.shape[0] / l3pdf.shape[0] * 100)
+        try:
+            merged_df = l4df.merge(l4pdf, how='outer', on='股票简称', indicator=True)
+            filtered_df_A = merged_df[merged_df['_merge'] == 'left_only'].drop(columns=['_merge'])
+            threeToMoreRate = round(filtered_df_A.shape[0] / l3pdf.shape[0] * 100)
+        except Exception as e:  # 捕获所有可能的异常
+            threeToMoreRate = round(filtered_df_A.shape[0] * 100)
 
-        # 计算一板数量增减幅度
-        oneRate = round((l1df.shape[0] - l1pdf.shape[0]) / l1df.shape[0] * 100)
+        try:
+            # 计算一板数量增减幅度
+            oneRate = round((l1df.shape[0] - l1pdf.shape[0]) / l1df.shape[0] * 100)
+        except Exception as e:  # 捕获所有可能的异常
+            oneRate = round((l1df.shape[0] - l1pdf.shape[0]) * 100)
 
         resMap = {
             'oneCount': l1df.shape[0],
@@ -191,6 +211,7 @@ def get_limitup_diff():
         return data, 200
 
     return 500
+
 
 def read_csv_with_fallback(file_path):
     try:
