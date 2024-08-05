@@ -1,6 +1,4 @@
 import sys
-
-
 sys.path.append('/usr/src/stock_analyse_tool_back_end_flask')
 from flask import Blueprint, request, Response, jsonify
 from app.models.stock_data import StockData
@@ -9,12 +7,80 @@ import akshare as ak
 import datetime
 from config import root_path
 import pywencai
-from app.utils.index import requestForNew
-import json
+from app.utils.index import requestForNew, clean_json, remove_field_from_objects
 
 singleToday = datetime.datetime.now().strftime("%Y%m%d")
 
 all_info_bp = Blueprint('stock_info', __name__, url_prefix='/all_info')
+
+@all_info_bp.route('/query_profit', methods = ["GET"])
+def query_profit():
+    stockCode = request.args.get("stockCode") or ''
+    marketId = request.args.get("marketId") or '33'
+    print(stockCode, marketId)
+    if (not stockCode):
+        return {
+            'data': [],
+            'code': 500,
+            'msg': '未传stockCode'
+        }
+    reqUrl = 'https://basic.10jqka.com.cn/basicapi/finance/stock/index/single/?code=%s&market=%s&id=parent_holder_net_profit&period=0&locale=zh_CN' % (stockCode, marketId)
+
+    content = requestForNew(reqUrl).json()
+    if not content:
+        response = {
+            'data': [],
+            'code': 500,
+            'msg': '无数据'
+        }
+        return response
+
+    response = {
+        'data': content['data']['data'][:6],
+        'code': 200,
+        'msg': '成功'
+    }
+
+    return response, 200
+
+# 问财通用查询
+@all_info_bp.route('/querymoney', methods = ["GET"])
+def wencai_stock_filter_universal_method():
+    query = request.args.get("query") or ''
+
+    if (not query):
+        return 404
+
+    page = 1
+    # 首选方式问财
+    res = pywencai.get(query=query, page=page)
+    # 判断res是否为空
+    if res is None:
+        df = pd.DataFrame()  # Default DataFrame
+    else:
+        df = res
+
+    # 当结果大于等于100或res的shape不存在，则页数+1，继续请求
+    while True:
+        if res is not None and (res.shape[0] >= 100):
+            page += 1
+            res = pywencai.get(query=query, page=page)
+            df = pd.concat([df, res], ignore_index=True)
+        else:
+            break
+    jsonDf = df.to_json(orient="records", force_ascii=False)
+
+    # 处理数据
+    cleaned_data = clean_json(jsonDf)
+
+    cleaned_data = remove_field_from_objects(cleaned_data, '涨停明细数据')
+
+    response = {
+        'data': cleaned_data,
+        'code': 200,
+        'msg': '成功'
+    }
+    return response, 200
 
 # 个股的基本面怎么样
 @all_info_bp.route('/fundamentals', methods = ["GET"])
@@ -27,8 +93,6 @@ def get_stock_fundamentals():
 
     # 首选方式问财
     res = pywencai.get(query=query)
-
-    print(res.keys(), res['行业排名'].keys(), res['行业排名']['营业收入'])
 
     fundTxt = res['container']['fundTxt'].to_json(orient="records", force_ascii=False)
     evaluate = res['txt1']
@@ -86,7 +150,6 @@ def get_hot_plate_stock_data():
         }
 
     content = requestForNew('https://eq.10jqka.com.cn/plateTimeSharing/plateIndexData/%s.txt' % pid).json()
-    df = pd.DataFrame()
 
     if not content:
         response = {
@@ -96,7 +159,6 @@ def get_hot_plate_stock_data():
         }
         return response
 
-    print(content)
     response = {
         'data': content,
         'code': 200,

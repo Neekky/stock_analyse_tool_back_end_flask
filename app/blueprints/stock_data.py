@@ -1,5 +1,8 @@
 import os
 import sys
+import pywencai
+
+from app.utils.index import analyze_trend, analyze_index
 
 sys.path.append('/usr/src/stock_analyse_tool_back_end_flask')
 from flask import Blueprint
@@ -13,7 +16,6 @@ from config import root_path
 singleToday = datetime.datetime.now().strftime("%Y%m%d")
 
 stock_data_bp = Blueprint('stock_data', __name__)
-
 
 # 获取个股股票K线
 @stock_data_bp.route('/get_stock_k_line', methods=["GET"])
@@ -111,6 +113,31 @@ def get_early_strategy_data():
     response = df.to_json(orient="records", force_ascii=False)
     return response
 
+# 获取指数运行状态
+@stock_data_bp.route('/get_status_of_index', methods=["GET"])
+def get_status():
+    index = request.args.get("index") or 'sh000001'
+
+    # todo 定义指数文件路径,本地开发这里要加quant
+    base_path = root_path + '/stock_data_base/data/指数历史日线数据/' + index + '.csv'
+    # 使用示例数据进行测试 520
+    df = pd.read_csv(base_path)
+    # df = df.iloc[:-1, :]
+    consecutive_up_days, consecutive_down_days = analyze_trend(df)
+
+    result = analyze_index(df)
+    resData = {
+        'consecutive_up_days': consecutive_up_days,
+        'consecutive_down_days': consecutive_down_days,
+        **result
+    }
+    response = {
+        'data': resData,
+        'msg': '请求成功',
+        'code': 200
+    }
+
+    return response, 200
 
 # 获取今日昨日涨停板晋级情况
 @stock_data_bp.route('/get_limitup_diff', methods=["GET"])
