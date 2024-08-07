@@ -119,7 +119,7 @@ def get_status():
     index = request.args.get("index") or 'sh000001'
 
     # todo 定义指数文件路径,本地开发这里要加quant
-    base_path = root_path + '/quant/stock_data_base/data/指数历史日线数据/' + index + '.csv'
+    base_path = root_path + '/stock_data_base/data/指数历史日线数据/' + index + '.csv'
     # 使用示例数据进行测试 520
     df = pd.read_csv(base_path)
     # df = df.iloc[:-1, :]
