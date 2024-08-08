@@ -17,6 +17,9 @@ singleToday = datetime.datetime.now().strftime("%Y%m%d")
 
 stock_data_bp = Blueprint('stock_data', __name__)
 
+# todo调试时设置为quant，发布时改为空
+prodPath = '/quant'
+
 # 获取个股股票K线
 @stock_data_bp.route('/get_stock_k_line', methods=["GET"])
 def get_stock_k_line():  # put application's code here
@@ -40,6 +43,33 @@ def get_stock_k_line():  # put application's code here
         stock_zh_a_hist_df = stock_zh_a_hist_df.iloc[[0, -1]]
 
     response = stock_zh_a_hist_df.to_json(orient="records", force_ascii=False)
+    return response
+
+
+# 获取指数K线
+@stock_data_bp.route('/get_index_k_line', methods=["GET"])
+def get_index_k_line():  # put application's code here
+    # 可以通过 request 的 args 属性来获取参数
+    index = request.args.get("index") or 'sh000001'
+    startDate = request.args.get("startDate") or None
+    endDate = request.args.get("endDate") or None
+
+    # todo 定义指数文件路径,本地开发这里要加quant
+    base_path = root_path + prodPath + '/stock_data_base/data/指数历史日线数据/' + index + '.csv'
+    df = pd.read_csv(base_path)
+    df['date'] = pd.to_datetime(df['candle_end_time'])
+
+    if (startDate):
+        df = df[df['date'] >= startDate]
+    if (endDate):
+        df = df[df['date'] <= endDate]
+
+    result = df.to_json(orient="records", force_ascii=False)
+    response = {
+        'code': 200,
+        'data': result,
+        'msg': '请求成功'
+    }
     return response
 
 
@@ -119,14 +149,12 @@ def get_status():
     index = request.args.get("index") or 'sh000001'
 
     # todo 定义指数文件路径,本地开发这里要加quant
-    base_path = root_path + '/stock_data_base/data/指数历史日线数据/' + index + '.csv'
+    base_path = root_path + prodPath + '/stock_data_base/data/指数历史日线数据/' + index + '.csv'
     # 使用示例数据进行测试 520
     df = pd.read_csv(base_path)
-    # df = df.iloc[:-1, :]
     consecutive_up_days, consecutive_down_days = analyze_trend(df)
 
     result = analyze_index(df)
-    print(result)
     resData = {
         'consecutive_up_days': consecutive_up_days,
         'consecutive_down_days': consecutive_down_days,
