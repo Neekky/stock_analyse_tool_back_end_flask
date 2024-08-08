@@ -18,7 +18,7 @@ singleToday = datetime.datetime.now().strftime("%Y%m%d")
 stock_data_bp = Blueprint('stock_data', __name__)
 
 # todo调试时设置为quant，发布时改为空
-prodPath = '/quant'
+prodPath = ''
 
 # 获取个股股票K线
 @stock_data_bp.route('/get_stock_k_line', methods=["GET"])
