@@ -22,7 +22,7 @@ def get_limit_kdj_model_data():
 
 # 获取见底的etf数据
 @stock_selection_model_bp.route('/get_etf_data', methods=['GET'])
-def get_limit_kdj_model_data():
+def get_bottom_etf_model_data():
     date = request.args.get("date") or singleToday
     # 通过趋势分析，选择见底的etf
     fund_etf_spot_em_df = ak.fund_etf_spot_em()
