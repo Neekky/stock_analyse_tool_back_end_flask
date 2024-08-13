@@ -3,6 +3,7 @@ from flask import Flask
 from .blueprints.main import main_bp
 from .blueprints.stock_data import stock_data_bp
 from .blueprints.all_info import all_info_bp
+from .blueprints.stock_selection_model import stock_selection_model_bp
 from flask_cors import CORS
 
 # def create_app(config_class=Config):
@@ -19,5 +20,6 @@ def create_app():
     app.register_blueprint(main_bp)
     app.register_blueprint(stock_data_bp)
     app.register_blueprint(all_info_bp)
+    app.register_blueprint(stock_selection_model_bp)
 
     return app

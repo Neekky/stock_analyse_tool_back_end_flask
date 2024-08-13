@@ -158,6 +158,7 @@ def get_status():
     resData = {
         'consecutive_up_days': consecutive_up_days,
         'consecutive_down_days': consecutive_down_days,
+        'index': index,
         **result
     }
     response = {
@@ -267,7 +268,6 @@ def get_limitup_diff():
         return data, 200
 
     return 500
-
 
 def read_csv_with_fallback(file_path):
     try:
