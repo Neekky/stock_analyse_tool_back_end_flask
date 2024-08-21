@@ -5,12 +5,18 @@ import matplotlib.pyplot as plt
 import json
 from scipy.stats import linregress
 from sklearn.linear_model import LinearRegression
+import datetime
+
+from config import root_path
 
 pd.set_option('expand_frame_repr', False)  # 当列太多时不换行
 pd.set_option('display.max_rows', 10000)  # 最多显示数据的行数
 # 设置命令行输出时的列对齐功能
 pd.set_option('display.unicode.ambiguous_as_wide', True)
 pd.set_option('display.unicode.east_asian_width', True)
+
+singleToday = datetime.datetime.now().strftime("%Y-%m-%d")
+prodPath = ''
 
 # 分析趋势
 def analyze_trend(df):
@@ -46,6 +52,7 @@ def analyze_trend(df):
 
     return consecutive_up_days, consecutive_down_days
 
+
 # 辅助df累计函数
 def helpCounter(df, newColName, counterCol):
     """
@@ -68,6 +75,7 @@ def helpCounter(df, newColName, counterCol):
     mynewdf = mynewdf.drop(columns=['连续计数'])
 
     return mynewdf
+
 
 # 数据预处理
 def data_pre(df):
@@ -97,12 +105,14 @@ def data_pre(df):
 
     return mynewdf
 
+
 def latest_change_percentage(df):
     """计算最新一天的涨跌幅"""
     latest_close = df['close'].iloc[-1]
     previous_close = df['close'].iloc[-2]
     change_percentage = (latest_close - previous_close) / previous_close * 100
     return change_percentage
+
 
 def detect_trend(df, period=22):
     """检测趋势，默认为14天的趋势"""
@@ -126,6 +136,7 @@ def detect_trend(df, period=22):
             return "下行趋势"
     else:
         return "横盘震荡"
+
 
 # 分析指数是否见顶见底反转的概率
 def detect_reversal(selfdf, trend):
@@ -208,7 +219,6 @@ def detect_reversal(selfdf, trend):
             score -= 10
             score_map += '低位成交量放大 ->'
 
-
     percent = abs(score / 70 * 100)
     # print(score, percent, score_map)
     # 转换为百分制
@@ -216,8 +226,9 @@ def detect_reversal(selfdf, trend):
         'score': f"{score:.2f}",
         'percent': f"{percent:.2f}",
         'score_map': score_map,
-        'volume_ma5_decreasing_counter': int(latest_5d_volume_decreasing_counter), # 下跌情况，缩量可能更为重要
+        'volume_ma5_decreasing_counter': int(latest_5d_volume_decreasing_counter),  # 下跌情况，缩量可能更为重要
     }
+
 
 def detect_speed_up(latest_change, current_trend):
     """判断是否为加速趋势"""
@@ -227,6 +238,7 @@ def detect_speed_up(latest_change, current_trend):
         return '加速下跌'
     else:
         return '趋势延续'
+
 
 def analyze_index(df):
     """综合分析指数运行情况"""
@@ -256,6 +268,7 @@ def analyze_index(df):
         "是否加速": is_speed_up
     }
 
+
 # 批量处理趋势分析，回测日期区间数据
 def batching_data(mydf, date):
     new_df = mydf[mydf['date'] <= date]
@@ -266,17 +279,26 @@ def batching_data(mydf, date):
 
     return is_reversal['score']
 
+
 # 批处理函数入口
-def batching_entry():
+def batching_entry(type='index', code='sh000001', start_date='2022-05-11', end_date=singleToday):
+    base_path = root_path + prodPath + '/stock_data_base/data/指数历史日线数据/%s.csv' % code
+
+    if type != 'index':
+        base_path = root_path + prodPath + '/stock_data_base/data/指数历史日线数据/ETF历史日线数据/%s.csv' % code
+
     # 使用示例数据进行测试 520
-    df = pd.read_csv('sh000001.csv')
-    df2 = pd.read_csv('sh000001.csv')
+    df = pd.read_csv(base_path)
+    df2 = pd.read_csv(base_path)
+
+    df = df.rename(columns={'开盘': 'open', '收盘': 'close', '最高': 'high', '最低': 'low', '成交量': 'amount',
+                            '日期': 'candle_end_time'})
+    df2 = df2.rename(columns={'开盘': 'open', '收盘': 'close', '最高': 'high', '最低': 'low', '成交量': 'amount',
+                             '日期': 'candle_end_time'})
 
     df['date'] = pd.to_datetime(df['candle_end_time'])
     df2['date'] = pd.to_datetime(df2['candle_end_time'])
 
-    start_date = '2020-05-11'
-    end_date = '2020-09-11'
     mask = (df['date'] <= end_date) & (df['date'] >= start_date)
 
     df = df[mask]
@@ -288,7 +310,7 @@ def batching_entry():
     # 遍历日期列表
     for date in date_list:
         # 动态更新 df
-        score = batching_data(df2, date) # 将返回值添加到结果列表
+        score = batching_data(df2, date)  # 将返回值添加到结果列表
 
         results.append(score)
 
@@ -296,9 +318,15 @@ def batching_entry():
         'date': date_list,
         'score': results
     })
-    
-    batching_draw(df, resdf)
-    
+
+    resdf['score'] = resdf['score'].astype(float)
+
+    resdf['percent'] = resdf['score'] / 70 * 100
+
+    return resdf
+    # batching_draw(df, resdf)
+
+
 # 批处理数据图像生成
 def batching_draw(df, resdf):
     resdf['percent'] = resdf['score'] / 70 * 100
@@ -344,7 +372,6 @@ def batching_draw(df, resdf):
     print(result['反转数据'])
     print(result['是否剧烈振幅'])
     print(result['是否加速'])
-
 
     # 获取沪深300指数，分析赛道股、题材股的反比情况。可以做成实时分析，10秒频次的获取，分析市场动向。
     # 分析涨家数、跌家数。成交量，判断市场情绪。有一个通过当前成交量、历史成交量区间的东西，判断当前市场是否过热，是否低迷。

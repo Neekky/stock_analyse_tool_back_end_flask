@@ -2,7 +2,7 @@ import os
 import sys
 import pywencai
 
-from app.utils.trend_analysis import analyze_trend, analyze_index
+from app.utils.trend_analysis import analyze_trend, analyze_index, batching_entry
 
 sys.path.append('/usr/src/stock_analyse_tool_back_end_flask')
 from flask import Blueprint
@@ -72,6 +72,22 @@ def get_index_k_line():  # put application's code here
     }
     return response
 
+
+# 获取指数的见顶见底概率
+@stock_data_bp.route('/get_index_top_bottom_percent', methods=["GET"])
+def get_index_top_bottom_percent():
+    type = request.args.get("type") or 'index'
+    code = request.args.get("code") or 'sh000001'
+    start_date = request.args.get("start_date") or '2022-05-11'
+    end_date = request.args.get("end_date") or singleToday
+    resdf = batching_entry(type, code, start_date, end_date)
+    result = resdf.to_json(orient="records", force_ascii=False)
+    response = {
+        'code': 200,
+        'data': result,
+        'msg': '请求成功'
+    }
+    return response
 
 # 获取每日涨停数据
 @stock_data_bp.route('/get_limitup_rank', methods=["GET"])
