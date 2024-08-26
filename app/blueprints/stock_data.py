@@ -2,6 +2,7 @@ import os
 import sys
 import pywencai
 
+from app.utils.common_config import prodPath
 from app.utils.trend_analysis import analyze_trend, analyze_index, batching_entry
 
 sys.path.append('/usr/src/stock_analyse_tool_back_end_flask')
@@ -16,9 +17,6 @@ from config import root_path
 singleToday = datetime.datetime.now().strftime("%Y%m%d")
 
 stock_data_bp = Blueprint('stock_data', __name__)
-
-# todo调试时设置为quant，发布时改为空
-prodPath = ''
 
 # 获取个股股票K线
 @stock_data_bp.route('/get_stock_k_line', methods=["GET"])

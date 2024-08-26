@@ -7,6 +7,7 @@ from scipy.stats import linregress
 from sklearn.linear_model import LinearRegression
 import datetime
 
+from app.utils.common_config import prodPath
 from config import root_path
 
 pd.set_option('expand_frame_repr', False)  # 当列太多时不换行
@@ -16,7 +17,7 @@ pd.set_option('display.unicode.ambiguous_as_wide', True)
 pd.set_option('display.unicode.east_asian_width', True)
 
 singleToday = datetime.datetime.now().strftime("%Y-%m-%d")
-prodPath = ''
+
 
 # 分析趋势
 def analyze_trend(df):

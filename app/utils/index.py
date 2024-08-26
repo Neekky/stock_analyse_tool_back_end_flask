@@ -56,6 +56,7 @@ def remove_field_from_objects(lst, key):
 
     return result
 
+# 将json数据中的key进行清理，将包含的日期去除掉，并转为字典类型，做为list的元素项
 def clean_json(json_data):
     # 如果输入是字符串，需要先进行json解析
     if isinstance(json_data, str):
