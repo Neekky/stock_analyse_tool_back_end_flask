@@ -11,8 +11,8 @@ from app.utils.trend_analysis import batching_entry
 
 tradeDate = getDate()
 # 如果今天不是交易日，那么就结束代码执行
-if (tradeDate != singleToday):
-    exit()
+#if (tradeDate != singleToday):
+ #   exit()
 
 # 获取当前脚本的目录
 current_dir = os.path.dirname(os.path.abspath(__file__))
