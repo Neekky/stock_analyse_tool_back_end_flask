@@ -187,4 +187,30 @@ def get_all_stock_list():
     }
     return response
 
+@all_info_bp.route('/get_trade_date', methods = ["GET"])
+def get_trade_date():
+    try:
+        content = requestForNew('https://hq.sinajs.cn/list=sh000001').text
+        data_date = str(content.split(',')[-4])
+
+        response = {
+            'data': data_date,
+            'code': 200,
+            'msg': '成功'
+        }
+        return response
+
+    except Exception as e:
+        # 捕获其他异常并返回错误信息
+        return {
+            'data': None,
+            'code': 500,
+            'msg': f'发生异常: {str(e)}'
+        }
+
+
+
+
+
+
 

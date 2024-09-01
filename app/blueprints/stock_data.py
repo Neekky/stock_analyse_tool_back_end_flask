@@ -18,6 +18,9 @@ singleToday = datetime.datetime.now().strftime("%Y%m%d")
 
 stock_data_bp = Blueprint('stock_data', __name__)
 
+# ===获取项目根目录
+_ = os.path.abspath(os.path.dirname(__file__))  # 返回当前文件路径
+
 # 获取个股股票K线
 @stock_data_bp.route('/get_stock_k_line', methods=["GET"])
 def get_stock_k_line():  # put application's code here
@@ -80,6 +83,22 @@ def get_index_top_bottom_percent():
     end_date = request.args.get("end_date") or singleToday
     resdf = batching_entry(type, code, start_date, end_date)
     result = resdf.to_json(orient="records", force_ascii=False)
+    response = {
+        'code': 200,
+        'data': result,
+        'msg': '请求成功'
+    }
+    return response
+
+# 快速获取上证指数的见顶见底概率数据
+@stock_data_bp.route('/get_sz_top_bottom_percent', methods=["GET"])
+def get_sz_top_bottom_percent():
+    # 定义数据存储路径
+    database_root_path = os.path.abspath(os.path.join(_, '../../database/other'))
+    df = pd.read_csv(database_root_path + '/index_top_bottom_percent.csv')
+
+    result = df.to_json(orient="records", force_ascii=False)
+
     response = {
         'code': 200,
         'data': result,
