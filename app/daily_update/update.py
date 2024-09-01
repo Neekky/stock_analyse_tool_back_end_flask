@@ -7,7 +7,11 @@ from app.utils.trend_analysis import batching_entry
 import datetime
 
 sys.path.append('/usr/src/stock_analyse_tool_back_end_flask')
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
+# 获取当前脚本的目录
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# 在当前脚本的目录的上一级添加到 sys.path
+sys.path.append(os.path.abspath(os.path.join(current_dir, '../..')))
 
 singleToday = datetime.datetime.now().strftime("%Y%m%d")
 
