@@ -1,10 +1,13 @@
 import time
 import requests
+import datetime
 import re
 import json
 import pandas as pd
 import numpy as np
 import ta
+
+singleToday = datetime.datetime.now().strftime("%Y-%m-%d")
 
 def requestForNew(url, max_try_num=10, sleep_time=5):
     headers = {
@@ -19,6 +22,14 @@ def requestForNew(url, max_try_num=10, sleep_time=5):
             print("链接失败", response)
             time.sleep(sleep_time)
 
+
+def getDate():
+    url = 'https://hq.sinajs.cn/list=sh000001'
+    response = requestForNew(url).text
+    data_date = str(response.split(',')[-4])
+    print(data_date, "data_date")
+    # 获取上证的指数日期
+    return data_date
 
 def clean_key(key):
     # 使用正则表达式去除键名中的日期时间字符
