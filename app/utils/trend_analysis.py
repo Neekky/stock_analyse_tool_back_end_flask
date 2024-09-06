@@ -181,9 +181,9 @@ def detect_reversal(selfdf, trend):
             score += 10
             score_map += '价格20日均线上穿50日均线 ->'
 
-        if (latest_rsi > 60):
+        if (latest_rsi > 65):
             score += 20
-            score_map += 'rsi大于60 ->'
+            score_map += 'rsi大于65 ->'
 
         # 加速上涨，加速赶顶
         if (amplitude > 3 and latest_5d_change > 0):
