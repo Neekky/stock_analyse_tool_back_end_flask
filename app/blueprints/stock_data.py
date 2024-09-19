@@ -6,7 +6,7 @@ from app.utils.common_config import prodPath
 from app.utils.trend_analysis import analyze_trend, analyze_index, batching_entry
 
 sys.path.append('/usr/src/stock_analyse_tool_back_end_flask')
-from flask import Blueprint
+from flask import Blueprint, jsonify
 from app.models.stock_data import StockData
 from flask import request
 import pandas as pd
@@ -310,3 +310,32 @@ def read_csv_with_fallback(file_path):
         print(f"Error reading {file_path}: {e}")  # 打印错误信息
         df = pd.DataFrame()  # 创建一个空的DataFrame
     return df
+
+# 获取个股股票的实时分时K线数据
+@stock_data_bp.route('/get_stock_realtime_data', methods=["GET"])
+def get_stock_realtime_data():
+    """
+    获取股票的实时数据。
+
+    参数:
+        symbol: 股票代码，必需。
+
+    返回:
+        JSON格式的股票数据，如果出错，返回相应的HTTP状态码。
+    """
+    symbol = request.args.get("symbol", '').strip()
+
+    if not symbol:
+        return jsonify({"error": "Symbol parameter is required."}), 400
+
+    try:
+        stock_intraday_em_df = ak.stock_intraday_em(symbol=symbol)
+        response = stock_intraday_em_df.to_json(orient="records", force_ascii=False)
+        data = {
+            "code": 200,
+            "data": response,
+            "msg": "请求成功"
+        }
+        return data, 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

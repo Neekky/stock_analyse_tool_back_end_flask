@@ -89,6 +89,18 @@ def data_pre(df):
     # 计算相对强弱指数（RSI）
     mynewdf.loc[:, 'RSI'] = ta.momentum.RSIIndicator(mynewdf['close'], window=12).rsi()
 
+    # 计算指数的MACD
+    # mynewdf.loc[:, 'MACD'] = ta.trend.macd(close=mynewdf['close'], window_slow=26, window_fast=12, fillna=True)
+    # mynewdf.loc[:, 'MACD_signal'] = ta.trend.macd_signal(close=mynewdf['close'], window_slow=26, window_fast=12, window_sign=9, fillna=True)
+    # mynewdf.loc[:, 'MACD_diff'] = ta.trend.macd_diff(close=mynewdf['close'], window_slow=26, window_fast=12, window_sign=9, fillna=True)
+
+    # 计算MACD 5日均线
+    # mynewdf.loc[:, 'MACD_MA5'] = mynewdf['MACD'].rolling(window=3).mean()
+    # mynewdf.loc[:, 'MACD_less_than_MA5'] = (mynewdf['MACD'] < mynewdf['MACD_MA5']).astype(int)
+    #
+    # print(mynewdf[['candle_end_time', 'MACD', 'MACD_signal', 'MACD_diff', 'MACD_MA5', 'MACD_less_than_MA5']])
+
+
     # 计算成交量的移动平均
     mynewdf.loc[:, 'Volume_MA20'] = mynewdf['amount'].rolling(window=20).mean()
 
