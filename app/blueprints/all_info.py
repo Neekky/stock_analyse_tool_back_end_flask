@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append('/usr/src/stock_analyse_tool_back_end_flask')
 from flask import Blueprint, request, Response, jsonify
 from app.models.stock_data import StockData
@@ -9,42 +10,182 @@ from config import root_path
 import pywencai
 from app.utils.index import requestForNew, clean_json, remove_field_from_objects
 
+import asyncio
+import aiohttp
+
 singleToday = datetime.datetime.now().strftime("%Y%m%d")
 
 all_info_bp = Blueprint('stock_info', __name__, url_prefix='/all_info')
 
-@all_info_bp.route('/query_profit', methods = ["GET"])
-def query_profit():
-    stockCode = request.args.get("stockCode") or ''
-    marketId = request.args.get("marketId") or '33'
-    print(stockCode, marketId)
-    if (not stockCode):
-        return {
-            'data': [],
-            'code': 500,
-            'msg': '未传stockCode'
-        }
-    reqUrl = 'https://basic.10jqka.com.cn/basicapi/finance/stock/index/single/?code=%s&market=%s&id=parent_holder_net_profit&period=0&locale=zh_CN' % (stockCode, marketId)
+def query_profit_backup():
+    try:
+        stockCode = request.args.get("stock_code") or ''
+        marketId = request.args.get("market_id") or '33'
+        start_date = request.args.get("start_date") or singleToday
+        end_date = request.args.get("end_date") or singleToday
+        period = request.args.get("period") or 'daily'
+        adjust = request.args.get("adjust") or 'qfq'
 
-    content = requestForNew(reqUrl).json()
-    if not content:
+        # 请求K线数据
+        stock_zh_a_hist_df = ak.stock_zh_a_hist(
+            symbol=stockCode,
+            period=period,
+            start_date=start_date,
+            end_date=end_date,
+            adjust=adjust
+        )
+        stock_zh_a_hist_data = stock_zh_a_hist_df.to_json(orient="records", force_ascii=False)
+
+        if (not stockCode):
+            return {
+                'data': [],
+                'code': 500,
+                'msg': '未传stockCode'
+            }
+
+        # 请求财务数据
+        reqUrl = 'https://basic.10jqka.com.cn/basicapi/finance/stock/index/single/?code=%s&market=%s&id=parent_holder_net_profit&period=0&locale=zh_CN' % (stockCode, marketId)
+        content = requestForNew(reqUrl).json()
+
+        if not content:
+            response = {
+                'data': {
+                    'stock_intraday_em_data': [],
+                    'query_profit': []
+                },
+                'code': 500,
+                'msg': '无数据'
+            }
+            return response, 500
+
         response = {
-            'data': [],
-            'code': 500,
-            'msg': '无数据'
+            'data': {
+                'stock_intraday_em_data': stock_zh_a_hist_data,
+                'query_profit': content['data']['data'][:8]
+            },
+            'code': 200,
+            'msg': '成功'
         }
-        return response
 
-    response = {
-        'data': content['data']['data'][:6],
-        'code': 200,
-        'msg': '成功'
-    }
+        return response, 200
 
-    return response, 200
+    except Exception as e:
+        response = {
+            'data': {
+                'stock_intraday_em_data': [],
+                'query_profit': []
+            },
+            'code': 500,
+            'msg': f'发生异常: {str(e)}'
+        }
+        return response, 500
+
+async def fetch_stock_data(session, stockCode, period, start_date, end_date, adjust):
+    try:
+        stock_zh_a_hist_df = ak.stock_zh_a_hist(
+            symbol=stockCode,
+            period=period,
+            start_date=start_date,
+            end_date=end_date,
+            adjust=adjust
+        )
+        return stock_zh_a_hist_df.to_json(orient="records", force_ascii=False), None
+    except Exception as e:
+        return None, f"Fetching stock data failed: {str(e)}"
+
+
+async def fetch_financial_data(session, stockCode, marketId):
+    try:
+        reqUrl = f'https://basic.10jqka.com.cn/basicapi/finance/stock/index/single/?code={stockCode}&market={marketId}&id=parent_holder_net_profit&period=0&locale=zh_CN'
+        content = requestForNew(reqUrl).json()
+
+        if not content:
+            return None, '接口获取成功，没有内容'
+
+        if content['status_msg'] != 'success':
+            return None, '接口获取成功，后端报错%s' % content['status_msg']
+
+        return content, None
+    except Exception as e:
+        return None, f"Fetching financial data failed: {str(e)}"
+
+
+async def fetch_all_data(stockCode, marketId, start_date, end_date, period, adjust):
+    async with aiohttp.ClientSession() as session:
+        stock_data_task = fetch_stock_data(session, stockCode, period, start_date, end_date, adjust)
+        financial_data_task = fetch_financial_data(session, stockCode, marketId)
+
+        stock_data, stock_error = await stock_data_task
+        financial_data, finance_error = await financial_data_task
+
+        return stock_data, stock_error, financial_data, finance_error
+
+@all_info_bp.route('/query_profit', methods=["GET"])
+def query_profit():
+    try:
+        stockCode = request.args.get("stock_code") or ''
+        marketId = request.args.get("market_id") or '33'
+        start_date = request.args.get("start_date") or singleToday
+        end_date = request.args.get("end_date") or singleToday
+        period = request.args.get("period") or 'daily'
+        adjust = request.args.get("adjust") or 'qfq'
+
+        if not stockCode:
+            return {
+                'data': [],
+                'code': 500,
+                'msg': '未传stockCode'
+            }
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        stock_data, stock_error, financial_data, finance_error = loop.run_until_complete(
+            fetch_all_data(stockCode, marketId, start_date, end_date, period, adjust)
+        )
+
+        if stock_error:
+            return {
+                'data': {
+                    'stock_intraday_em_data': [],
+                    'query_profit': []
+                },
+                'code': 500,
+                'msg': stock_error
+            }
+
+        if not financial_data:
+            return {
+                'data': {
+                    'stock_intraday_em_data': stock_data,
+                    'query_profit': []
+                },
+                'code': 200,
+                'msg': '无财务数据'
+            }
+
+        response = {
+            'data': {
+                'stock_intraday_em_data': stock_data,
+                'query_profit': financial_data['data']['data'][:8]
+            },
+            'code': 200,
+            'msg': '成功'
+        }
+        return response, 200
+
+    except Exception as e:
+        return {
+            'data': {
+                'stock_intraday_em_data': [],
+                'query_profit': []
+            },
+            'code': 500,
+            'msg': f'发生异常: {str(e)}'
+        }, 500
+
 
 # 问财通用查询
-@all_info_bp.route('/querymoney', methods = ["GET"])
+@all_info_bp.route('/querymoney', methods=["GET"])
 def wencai_stock_filter_universal_method():
     query = request.args.get("query") or ''
 
@@ -82,8 +223,9 @@ def wencai_stock_filter_universal_method():
     }
     return response, 200
 
+
 # 个股的基本面怎么样
-@all_info_bp.route('/fundamentals', methods = ["GET"])
+@all_info_bp.route('/fundamentals', methods=["GET"])
 def get_stock_fundamentals():
     name = request.args.get("name") or ''
 
@@ -114,7 +256,8 @@ def get_stock_fundamentals():
 
     return result, 200, {'mimetype': 'application/json'}
 
-@all_info_bp.route('/hot_plate_data', methods = ["GET"])
+
+@all_info_bp.route('/hot_plate_data', methods=["GET"])
 def get_hot_plate_data():
     trade_date = request.args.get("date") or singleToday
 
@@ -137,8 +280,9 @@ def get_hot_plate_data():
     }
     return response, 200
 
+
 # 获取热门板块的龙头股
-@all_info_bp.route('/hot_plate_stock_data', methods = ["GET"])
+@all_info_bp.route('/hot_plate_stock_data', methods=["GET"])
 def get_hot_plate_stock_data():
     pid = request.args.get("pid") or None
 
@@ -167,7 +311,8 @@ def get_hot_plate_stock_data():
 
     return response, 200
 
-@all_info_bp.route('/all_stock_list', methods = ["GET"])
+
+@all_info_bp.route('/all_stock_list', methods=["GET"])
 def get_all_stock_list():
     stock_zh_a_spot_em_df = ak.stock_zh_a_spot_em()
 
@@ -187,7 +332,8 @@ def get_all_stock_list():
     }
     return response
 
-@all_info_bp.route('/get_trade_date', methods = ["GET"])
+
+@all_info_bp.route('/get_trade_date', methods=["GET"])
 def get_trade_date():
     try:
         content = requestForNew('https://hq.sinajs.cn/list=sh000001').text
@@ -207,10 +353,3 @@ def get_trade_date():
             'code': 500,
             'msg': f'发生异常: {str(e)}'
         }
-
-
-
-
-
-
-
