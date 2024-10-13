@@ -13,6 +13,7 @@ import json
 from flask import Blueprint, jsonify, request
 from app.models import db
 from app.models.stock_limit_movement import StockLimitMovement
+import time
 
 singleToday = datetime.datetime.now().strftime("%Y%m%d")
 
@@ -83,9 +84,43 @@ def get_limit_leading_model_data():
 # 获取见底的etf数据
 @stock_selection_model_bp.route('/get_etf_data', methods=['GET'])
 def get_bottom_etf_model_data():
-    date = request.args.get("date") or singleToday
-    # 通过趋势分析，选择见底的etf
-    fund_etf_spot_em_df = ak.fund_etf_spot_em()
+    symbol = request.args.get("symbol")
+    if not symbol:
+        return {"code": 400, "msg": "Symbol is required"}, 400
 
-    return '111'
+    max_retries = 3
+    wait_time = 2
+
+    for retry in range(max_retries):
+        try:
+            df = ak.fund_etf_hist_em(
+                symbol=symbol,
+                period="daily",
+                end_date=singleToday,
+                adjust="qfq"
+            )
+            if df.empty:
+                if retry == max_retries - 1:
+                    return {"code": 404, "msg": "No data found for the given symbol"}, 404
+                print(f"No data found. Retrying {retry + 1}/{max_retries}...")
+                time.sleep(wait_time)
+                continue
+
+            json_data = df.to_json(orient="records", force_ascii=False)
+            return {
+                'data': json_data,
+                'code': 200,
+                'msg': '成功'
+            }, 200
+
+        except Exception as e:
+            if retry == max_retries - 1:
+                print(f"Max retries reached. Error: {e}")
+                return {"code": 500, "msg": "Internal server error"}, 500
+            print(f"Error occurred: {e}. Retrying {retry + 1}/{max_retries}...")
+            time.sleep(wait_time)
+
+    # This line should never be reached, but just in case
+    return {"code": 500, "msg": "Unexpected error occurred"}, 500
+
 

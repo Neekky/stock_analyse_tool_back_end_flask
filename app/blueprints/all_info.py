@@ -9,6 +9,7 @@ import datetime
 from config import root_path
 import pywencai
 from app.utils.index import requestForNew, clean_json, remove_field_from_objects
+import time
 
 import asyncio
 import aiohttp
@@ -184,38 +185,54 @@ def query_profit():
         }, 500
 
 
-# 问财通用查询
+# 问财通用查询-股票列表
 @all_info_bp.route('/querymoney', methods=["GET"])
 def wencai_stock_filter_universal_method():
     query = request.args.get("query") or ''
 
     if (not query):
         return 404
+    df = pd.DataFrame()
+
+    max_retries = 3
+    wait_time = 2
 
     page = 1
-    # 首选方式问财
-    res = pywencai.get(query=query, page=page)
-    # 判断res是否为空
-    if res is None:
-        df = pd.DataFrame()  # Default DataFrame
-    else:
-        df = res
+    retries = 0
 
-    # 当结果大于等于100或res的shape不存在，则页数+1，继续请求
-    while True:
-        if res is not None and (res.shape[0] >= 100):
-            page += 1
-            res = pywencai.get(query=query, page=page)
+    while retries < max_retries:
+        try:
+            # 首选方式问财
+            res = pywencai.get(query=query, page=page, sort_order='asc')
+
+            # 判断res是否为空
+            if res is None:
+                res = pd.DataFrame()  # Default DataFrame
+
+            # 合并数据
             df = pd.concat([df, res], ignore_index=True)
-        else:
-            break
+
+            # 当结果大于等于100，则页数+1，继续请求
+            if res.shape[0] >= 100:
+                page += 1
+                continue
+            else:
+                break  # 没有更多数据，退出循环
+
+        except Exception as e:
+            retries += 1
+            print(f"Error occurred: {e}. Retrying {retries}/{max_retries}...")
+            time.sleep(wait_time)  # 等待一段时间后重试
+
+            if retries >= max_retries:
+                print("Max retries reached. Exiting.")
+                return None  # 返回 None 或者其他指示失败的值
+
     jsonDf = df.to_json(orient="records", force_ascii=False)
 
     # 处理数据
     cleaned_data = clean_json(jsonDf)
-
     cleaned_data = remove_field_from_objects(cleaned_data, '涨停明细数据')
-
     response = {
         'data': cleaned_data,
         'code': 200,
@@ -223,6 +240,56 @@ def wencai_stock_filter_universal_method():
     }
     return response, 200
 
+# 问财通用查询-个股信息
+@all_info_bp.route('/querymoney_info', methods=["GET"])
+def wencai_stock_info():
+    query = request.args.get("query") or ''
+
+    if (not query):
+        return 404
+
+    max_retries = 3
+    wait_time = 2
+
+    retries = 0
+
+    res = {}
+
+    while retries < max_retries:
+        try:
+            # 首选方式问财
+            res = pywencai.get(query=query, page=1, sort_order='asc')
+
+            # 判断res是否为空
+            if res is None:
+                res = {}  # Default DataFrame
+
+            print(res)
+            if res['txt2'] is None:
+                desc = ''
+            else:
+                desc = res['txt2']
+
+            res = {
+                'desc': desc,
+            }
+            break
+
+        except Exception as e:
+            retries += 1
+            print(f"Error occurred: {e}. Retrying {retries}/{max_retries}...")
+            time.sleep(wait_time)  # 等待一段时间后重试
+
+            if retries >= max_retries:
+                print("Max retries reached. Exiting.")
+                return None  # 返回 None 或者其他指示失败的值
+
+    response = {
+        'data': res,
+        'code': 200,
+        'msg': '成功'
+    }
+    return response, 200
 
 # 个股的基本面怎么样
 @all_info_bp.route('/fundamentals', methods=["GET"])
