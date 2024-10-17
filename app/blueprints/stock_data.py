@@ -106,6 +106,53 @@ def get_sz_top_bottom_percent():
     }
     return response
 
+# 快速获取大盘的涨跌家数数据
+@stock_data_bp.route('/get_upward_and_downward_trend', methods=["GET"])
+def get_upward_and_downward_trend():
+    # 定义数据存储路径
+    database_root_path = root_path + '/stock_analyse_tool_data_crawl/database/同花顺数据/涨跌趋势.csv'
+    df = pd.read_csv(database_root_path)
+
+    result = df.to_json(orient="records", force_ascii=False)
+
+    response = {
+        'code': 200,
+        'data': result,
+        'msg': '请求成功'
+    }
+    return response
+
+# 快速获取大盘的大盘历史成交额数据
+@stock_data_bp.route('/get_qkj_market_volume', methods=["GET"])
+def get_qkj_market_volume():
+    # 定义数据存储路径
+    database_root_path = root_path + '/stock_analyse_tool_data_crawl/database/同花顺数据/市场成交额.csv'
+    df = pd.read_csv(database_root_path)
+
+    result = df.to_json(orient="records", force_ascii=False)
+
+    response = {
+        'code': 200,
+        'data': result,
+        'msg': '请求成功'
+    }
+    return response
+
+# 快速获取大盘的涨跌家数数据
+@stock_data_bp.route('/get_qkj_market_score', methods=["GET"])
+def get_qkj_market_score():
+    # 定义数据存储路径
+    database_root_path = root_path + '/stock_analyse_tool_data_crawl/database/同花顺数据/诊大盘.csv'
+    df = pd.read_csv(database_root_path)
+
+    result = df.to_json(orient="records", force_ascii=False)
+
+    response = {
+        'code': 200,
+        'data': result,
+        'msg': '请求成功'
+    }
+    return response
 # 获取每日涨停数据
 @stock_data_bp.route('/get_limitup_rank', methods=["GET"])
 def get_limitup_rank():
