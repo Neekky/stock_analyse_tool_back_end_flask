@@ -110,14 +110,31 @@ async def fetch_financial_data(session, stockCode, marketId):
     except Exception as e:
         return None, f"Fetching financial data failed: {str(e)}"
 
+async def fetch_roe_data(session, stockCode, marketId):
+    try:
+        reqUrl = f'https://basic.10jqka.com.cn/basicapi/finance/stock/index/single/?code={stockCode}&market={marketId}&id=index_weighted_avg_roe&period=0&locale=zh_CN'
+        content = requestForNew(reqUrl).json()
+
+        if not content:
+            return None, '接口获取成功，没有内容'
+
+        if content['status_msg'] != 'success':
+            return None, '接口获取成功，后端报错%s' % content['status_msg']
+
+        return content, None
+    except Exception as e:
+        return None, f"Fetching financial data failed: {str(e)}"
+
 
 async def fetch_all_data(stockCode, marketId, start_date, end_date, period, adjust):
     async with aiohttp.ClientSession() as session:
         stock_data_task = fetch_stock_data(session, stockCode, period, start_date, end_date, adjust)
         financial_data_task = fetch_financial_data(session, stockCode, marketId)
+        # roe_data_task = fetch_roe_data(session, stockCode, marketId)
 
         stock_data, stock_error = await stock_data_task
         financial_data, finance_error = await financial_data_task
+        # roe_data, roe_error = await roe_data_task
 
         return stock_data, stock_error, financial_data, finance_error
 
@@ -140,37 +157,38 @@ def query_profit():
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+
+        # 这里请求了股票K线、股票的归母净利润数据、ROE数据
         stock_data, stock_error, financial_data, finance_error = loop.run_until_complete(
             fetch_all_data(stockCode, marketId, start_date, end_date, period, adjust)
         )
 
-        if stock_error:
-            return {
-                'data': {
-                    'stock_intraday_em_data': [],
-                    'query_profit': []
-                },
-                'code': 500,
-                'msg': stock_error
-            }
+        errorInfo = {}
+        data = {}
 
-        if not financial_data:
-            return {
-                'data': {
-                    'stock_intraday_em_data': stock_data,
-                    'query_profit': []
-                },
-                'code': 200,
-                'msg': '无财务数据'
-            }
+        if stock_error:
+            errorInfo['stock_error'] = stock_error
+            data['stock_intraday_em_data'] = []
+        else:
+            data['stock_intraday_em_data'] = stock_data
+
+
+        if finance_error:
+            errorInfo['finance_error'] = finance_error
+            data['query_profit'] = []
+        else:
+            data['query_profit'] = financial_data['data']['data'][:9]
+
+        # if roe_error:
+        #     errorInfo['roe_error'] = roe_error
+        #     data['roe_data'] = []
+        # else:
+        #     data['roe_data'] = roe_data['data']['data'][:9]
 
         response = {
-            'data': {
-                'stock_intraday_em_data': stock_data,
-                'query_profit': financial_data['data']['data'][:8]
-            },
+            'data': data,
             'code': 200,
-            'msg': '成功'
+            'msg': errorInfo
         }
         return response, 200
 
@@ -178,7 +196,8 @@ def query_profit():
         return {
             'data': {
                 'stock_intraday_em_data': [],
-                'query_profit': []
+                'query_profit': [],
+                # 'roe_data': []
             },
             'code': 500,
             'msg': f'发生异常: {str(e)}'

@@ -1,3 +1,5 @@
+import os
+
 import akshare as ak
 import pandas as pd
 import pywencai
@@ -28,8 +30,16 @@ pd.set_option('display.unicode.east_asian_width', True)
 # stock_add_stock_df = ak.stock_add_stock(stock="600004")
 # print(stock_add_stock_df)
 
-stock_a_congestion_lg_df = ak.stock_a_congestion_lg()
-print(stock_a_congestion_lg_df)
+# stock_a_congestion_lg_df = ak.stock_a_congestion_lg()
+# print(stock_a_congestion_lg_df)
+# currency_boc_sina_df = ak.currency_boc_sina(symbol="美元", start_date="20231004", end_date="20241017")
+# print(currency_boc_sina_df)
+#
+# currency_boc_safe_df = ak.currency_boc_safe()
+# print(currency_boc_safe_df)
+
+macro_info_ws_df = ak.macro_info_ws(date="20241018")
+print(macro_info_ws_df)
 
 # stock_gpzy_pledge_ratio_detail_em_df = ak.stock_gpzy_pledge_ratio_detail_em()
 # print(stock_gpzy_pledge_ratio_detail_em_df)
