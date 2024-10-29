@@ -106,6 +106,22 @@ def get_sz_top_bottom_percent():
     }
     return response
 
+# 快速获取A股龙虎榜各路资金明细数据
+@stock_data_bp.route('/get_winner_volume_detail', methods=["GET"])
+def get_winner_volume_detail():
+    # 定义数据存储路径
+    database_root_path = root_path + '/stock_analyse_tool_data_crawl/database/同花顺数据/龙虎榜资金成交量明细.csv'
+    df = pd.read_csv(database_root_path)
+
+    result = df.to_json(orient="records", force_ascii=False)
+
+    response = {
+        'code': 200,
+        'data': result,
+        'msg': '请求成功'
+    }
+    return response
+
 # 快速获取大盘的涨跌家数数据
 @stock_data_bp.route('/get_upward_and_downward_trend', methods=["GET"])
 def get_upward_and_downward_trend():
