@@ -74,7 +74,7 @@ def get_index_k_line():  # put application's code here
     return response
 
 
-# 获取指数的见顶见底概率
+# 获取指数的见顶见底概率,会需要每次都重新计算
 @stock_data_bp.route('/get_index_top_bottom_percent', methods=["GET"])
 def get_index_top_bottom_percent():
     type = request.args.get("type") or 'index'
@@ -93,9 +93,12 @@ def get_index_top_bottom_percent():
 # 快速获取上证指数的见顶见底概率数据
 @stock_data_bp.route('/get_sz_top_bottom_percent', methods=["GET"])
 def get_sz_top_bottom_percent():
+
+    csv_name = request.args.get("csv_name") or '/index_top_bottom_percent.csv'
+
     # 定义数据存储路径
     database_root_path = os.path.abspath(os.path.join(_, '../../database/other'))
-    df = pd.read_csv(database_root_path + '/index_top_bottom_percent.csv')
+    df = pd.read_csv(database_root_path + csv_name)
 
     result = df.to_json(orient="records", force_ascii=False)
 

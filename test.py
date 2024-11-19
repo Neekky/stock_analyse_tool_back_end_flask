@@ -6,12 +6,12 @@ import pywencai
 
 from app.utils.trend_analysis import batching_entry
 
-pd.set_option('display.max_rows', 3000)
+# pd.set_option('display.max_rows', 3000)
 pd.set_option('expand_frame_repr', False)  # 当列太多时不换行
 # 设置命令行输出时的列对齐功能
 pd.set_option('display.unicode.ambiguous_as_wide', True)
 pd.set_option('display.unicode.east_asian_width', True)
-
+pd.set_option('display.max_rows', None)  # 最多显示数据的行数
 # stock_comment_detail_zlkp_jgcyd_em_df = ak.stock_comment_detail_zlkp_jgcyd_em(symbol="601162")
 # print(stock_comment_detail_zlkp_jgcyd_em_df)
 #
@@ -38,8 +38,13 @@ pd.set_option('display.unicode.east_asian_width', True)
 # currency_boc_safe_df = ak.currency_boc_safe()
 # print(currency_boc_safe_df)
 
-macro_info_ws_df = ak.macro_info_ws(date="20241018")
-print(macro_info_ws_df)
+
+# currency_time_series_df = ak.currency_time_series(base="USD", start_date="2023-02-03", end_date="2024-10-31", symbols="CNY", api_key="1PT0QumQdGQOw6XFj9oBnUsFEjuTCGoH")
+# print(currency_time_series_df)
+
+
+stock_gdfx_free_holding_analyse_em_df = ak.stock_gdfx_free_holding_analyse_em(date="20241107")
+print(stock_gdfx_free_holding_analyse_em_df)
 
 # stock_gpzy_pledge_ratio_detail_em_df = ak.stock_gpzy_pledge_ratio_detail_em()
 # print(stock_gpzy_pledge_ratio_detail_em_df)
