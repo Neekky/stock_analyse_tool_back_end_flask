@@ -178,34 +178,13 @@ def detect_reversal(selfdf, trend):
 
     # 最新收盘价
     latest_close = drdf['close'].iloc[-1]
-    # 上一日收盘价
-    yesterday_close = drdf['close'].iloc[-2]
     # 最新成交量
     latest_vol = drdf['amount'].iloc[-1]
-    # 价格20日线
-    latest_ma20 = drdf['MA20'].iloc[-1]
-    # 价格60日线
-    latest_ma60 = drdf['MA60'].iloc[-1]
 
-
-    # 最新ema5日线
-    latest_ema5 = drdf['EMA5'].iloc[-1]
-    # 最新ema10日线
-    latest_ema10 = drdf['EMA10'].iloc[-1]
     # 最新ema20日线
     latest_ema20 = drdf['EMA20'].iloc[-1]
     # 最新ema60日线
     latest_ema60 = drdf['EMA60'].iloc[-1]
-
-    # 上一日ema5日线
-    yesterday_ema5 = drdf['EMA5'].iloc[-2]
-    # 上一日ema10日线
-    yesterday_ema10 = drdf['EMA10'].iloc[-2]
-    # 上一日ema20日线
-    yesterday_ema20 = drdf['EMA20'].iloc[-2]
-    # 上一日ema60日线
-    yesterday_ema60 = drdf['EMA60'].iloc[-2]
-
 
     # 最新12日rsi
     latest_rsi = drdf['RSI'].iloc[-1]
@@ -227,16 +206,6 @@ def detect_reversal(selfdf, trend):
     # 考虑如何加入5日的考察集，可能是在循环时，给df加数据，或是维护一个临时变量
 
     if (trend == '上行趋势'):
-
-        # 上升趋势中，5日线跌破20日线，形成死叉
-        if yesterday_ema5 > yesterday_ema20 and latest_ema5 < latest_ema20:
-            score += 10
-            score_map += '上升趋势中，5日线跌破20日线，形成死叉 ->'
-
-        # 上升趋势中，价格跌破10日线
-        if yesterday_close > yesterday_ema10 and yesterday_close < latest_ema10:
-            score += 10
-            score_map += '上升趋势中，价格跌破10日线 ->'
 
         # 价格上穿20日均线
         if latest_close > latest_ema20:
@@ -263,17 +232,6 @@ def detect_reversal(selfdf, trend):
             score_map += '高位成交量放大 ->'
 
     else:
-
-        # 下跌趋势中，5日线升破20日线，形成金叉
-        if (yesterday_ema5 < yesterday_ema20 and latest_ema20 < latest_ema5):
-            score += 10
-            score_map += '下跌趋势中，5日线升破20日线，形成金叉 ->'
-
-        # 下跌趋势中，价格升破10日线
-        if yesterday_close < yesterday_ema10 and yesterday_close > latest_ema10:
-            score += 10
-            score_map += '下跌趋势中，价格升破10日线 ->'
-
         # 价格跌破20日均线
         if (latest_close < latest_ema20):
             score -= 10
@@ -300,8 +258,7 @@ def detect_reversal(selfdf, trend):
 
     # 这个百分比计算，下面的函数也要同步改
 
-    percent = abs(score / 90 * 100)
-    print(score_map, score, percent)
+    percent = abs(score / 70 * 100)
     # 转换为百分制
     return {
         'score': f"{score:.2f}",
@@ -402,7 +359,7 @@ def batching_entry(type='index', code='sh000001', start_date='2022-05-11', end_d
 
     resdf['score'] = resdf['score'].astype(float)
 
-    resdf['percent'] = resdf['score'] / 90 * 100
+    resdf['percent'] = resdf['score'] / 70 * 100
 
     return resdf
     # batching_draw(df, resdf)
@@ -440,8 +397,6 @@ def batching_draw(df, resdf):
     # 显示图形
     plt.xticks(rotation=45)  # 旋转日期标签，避免重叠
     plt.show()
-
-    print(resdf)
 
     up, down = analyze_trend(df)
     print(df.tail(1))
