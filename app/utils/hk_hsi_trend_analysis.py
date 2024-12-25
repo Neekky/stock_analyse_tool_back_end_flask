@@ -134,6 +134,30 @@ def latest_change_percentage(df):
     return change_percentage
 
 
+def detect_trend_opt(df, period=22):
+    """检测趋势，默认为14天的趋势"""
+    trend_df = df.tail(period)
+    trend_close = trend_df['close'].values
+    x = np.arange(len(trend_close))
+    # 对收盘价做线性回归，看斜率
+    slope = np.polyfit(x, trend_close, 1)[0]
+
+    # 设置阈值
+    theta_up = 0.5
+    theta_down = -0.5
+
+    if slope > theta_up:
+        return "上行趋势"
+    elif slope < theta_down:
+        if theta_down < -5:
+            # 这个判断看看咋回事
+            return '极速下行'
+        else:
+            return "下行趋势"
+    else:
+        return "横盘震荡"
+
+
 def detect_trend(df, period=22):
     """检测趋势，默认为14天的趋势"""
     trend_df = df.tail(period)
