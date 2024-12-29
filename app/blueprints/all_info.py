@@ -439,3 +439,31 @@ def get_trade_date():
             'code': 500,
             'msg': f'发生异常: {str(e)}'
         }
+
+# 使用akshare请求股债利差数据
+@all_info_bp.route('/get_stock_ebs_lg', methods=["GET"])
+def get_stock_ebs_lg():
+    try:
+        content = ak.stock_ebs_lg()
+        
+        if content is None or content.empty:
+            return {
+                'data': None,
+                'code': 404,
+                'msg': '未获取到股债利差数据'
+            }, 404
+
+        data = content.to_json(orient="records", force_ascii=False)
+        
+        return {
+            'data': data,
+            'code': 200,
+            'msg': '成功'
+        }, 200
+
+    except Exception as e:
+        return {
+            'data': None,
+            'code': 500,
+            'msg': f'获取股债利差数据失败: {str(e)}'
+        }, 500
