@@ -418,6 +418,29 @@ def get_all_stock_list():
     }
     return response
 
+# 获取指数日线数据, 默认获取上证指数
+@all_info_bp.route('/stock_zh_index_daily', methods=["GET"])
+def get_stock_zh_index_daily():
+    symbol = request.args.get("symbol") or 'sh000001'
+
+    stock_zh_a_spot_em_df = ak.stock_zh_index_daily_em(symbol=symbol)
+
+    data = stock_zh_a_spot_em_df.to_json(orient="records", force_ascii=False)
+
+    if (not data):
+        return {
+            'data': [],
+            'code': 500,
+            'msg': '无数据'
+        }
+
+    response = {
+        'data': data,
+        'code': 200,
+        'msg': '成功'
+    }
+    return response
+
 
 @all_info_bp.route('/get_trade_date', methods=["GET"])
 def get_trade_date():
