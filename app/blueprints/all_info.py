@@ -427,6 +427,7 @@ def get_stock_zh_index_daily():
 
     data = stock_zh_a_spot_em_df.to_json(orient="records", force_ascii=False)
 
+    
     if (not data):
         return {
             'data': [],
