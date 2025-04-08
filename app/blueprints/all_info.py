@@ -1,4 +1,5 @@
 import sys
+import os
 
 sys.path.append('/usr/src/stock_analyse_tool_back_end_flask')
 from flask import Blueprint, request, Response, jsonify
@@ -17,6 +18,7 @@ import aiohttp
 singleToday = datetime.datetime.now().strftime("%Y%m%d")
 
 all_info_bp = Blueprint('stock_info', __name__, url_prefix='/all_info')
+
 
 def query_profit_backup():
     try:
@@ -45,7 +47,8 @@ def query_profit_backup():
             }
 
         # 请求财务数据
-        reqUrl = 'https://basic.10jqka.com.cn/basicapi/finance/stock/index/single/?code=%s&market=%s&id=parent_holder_net_profit&period=0&locale=zh_CN' % (stockCode, marketId)
+        reqUrl = 'https://basic.10jqka.com.cn/basicapi/finance/stock/index/single/?code=%s&market=%s&id=parent_holder_net_profit&period=0&locale=zh_CN' % (
+            stockCode, marketId)
         content = requestForNew(reqUrl).json()
 
         if not content:
@@ -81,6 +84,7 @@ def query_profit_backup():
         }
         return response, 500
 
+
 async def fetch_stock_data(session, stockCode, period, start_date, end_date, adjust):
     try:
         stock_zh_a_hist_df = ak.stock_zh_a_hist(
@@ -110,6 +114,7 @@ async def fetch_financial_data(session, stockCode, marketId):
     except Exception as e:
         return None, f"Fetching financial data failed: {str(e)}"
 
+
 async def fetch_roe_data(session, stockCode, marketId):
     try:
         reqUrl = f'https://basic.10jqka.com.cn/basicapi/finance/stock/index/single/?code={stockCode}&market={marketId}&id=index_weighted_avg_roe&period=0&locale=zh_CN'
@@ -137,6 +142,7 @@ async def fetch_all_data(stockCode, marketId, start_date, end_date, period, adju
         # roe_data, roe_error = await roe_data_task
 
         return stock_data, stock_error, financial_data, finance_error
+
 
 @all_info_bp.route('/query_profit', methods=["GET"])
 def query_profit():
@@ -171,7 +177,6 @@ def query_profit():
             data['stock_intraday_em_data'] = []
         else:
             data['stock_intraday_em_data'] = stock_data
-
 
         if finance_error:
             errorInfo['finance_error'] = finance_error
@@ -259,6 +264,7 @@ def wencai_stock_filter_universal_method():
     }
     return response, 200
 
+
 # 问财通用查询-个股信息
 @all_info_bp.route('/querymoney_info', methods=["GET"])
 def wencai_stock_info():
@@ -309,6 +315,7 @@ def wencai_stock_info():
         'msg': '成功'
     }
     return response, 200
+
 
 # 个股的基本面怎么样
 @all_info_bp.route('/fundamentals', methods=["GET"])
@@ -418,6 +425,7 @@ def get_all_stock_list():
     }
     return response
 
+
 # 获取指数日线数据, 默认获取上证指数
 @all_info_bp.route('/stock_zh_index_daily', methods=["GET"])
 def get_stock_zh_index_daily():
@@ -427,7 +435,6 @@ def get_stock_zh_index_daily():
 
     data = stock_zh_a_spot_em_df.to_json(orient="records", force_ascii=False)
 
-    
     if (not data):
         return {
             'data': [],
@@ -464,12 +471,13 @@ def get_trade_date():
             'msg': f'发生异常: {str(e)}'
         }
 
+
 # 使用akshare请求股债利差数据
 @all_info_bp.route('/get_stock_ebs_lg', methods=["GET"])
 def get_stock_ebs_lg():
     try:
         content = ak.stock_ebs_lg()
-        
+
         if content is None or content.empty:
             return {
                 'data': None,
@@ -478,7 +486,7 @@ def get_stock_ebs_lg():
             }, 404
 
         data = content.to_json(orient="records", force_ascii=False)
-        
+
         return {
             'data': data,
             'code': 200,
@@ -490,4 +498,69 @@ def get_stock_ebs_lg():
             'data': None,
             'code': 500,
             'msg': f'获取股债利差数据失败: {str(e)}'
+        }, 500
+
+
+# 将服务器本地的每日日报返回给前端
+@all_info_bp.route('/get_daily_report', methods=["GET"])
+def get_daily_report():
+    env_path = ''
+    if sys.platform.startswith('darwin'):
+        env_path = 'quant/'
+    # 获取交易日期
+    sh_index_file_path = f'{root_path}/{env_path}stock_data_base/data/指数历史日线数据/sh000001.csv'
+
+    szzs = pd.read_csv(sh_index_file_path)
+
+    # 最后一日交易日期
+    trade_date = szzs.iloc[-1]['candle_end_time']
+
+    # 倒数第二日交易日期，用于当日日报没数据时使用
+    trade_date_prev = ''
+
+    # 构建文件路径
+    file_path = f'{root_path}/stock_analyse_tool_data_crawl/database/每日日报/{trade_date}/{trade_date}.md'
+    try:
+        # 检查文件是否存在
+        if not os.path.exists(file_path):
+            # 如果不存在，获取前一日的交易日期
+            trade_date_prev = szzs.iloc[-2]['candle_end_time']
+            file_path = f'{root_path}/stock_analyse_tool_data_crawl/database/每日日报/{trade_date_prev}/{trade_date_prev}.md'
+
+            # 再次检查文件是否存在
+            if not os.path.exists(file_path):
+                return {
+                    'data': {
+                        'content': None,
+                        'tradeDate': trade_date,
+                        'tradeDatePrev': trade_date_prev
+                    },
+                    'code': 404,
+                    'msg': '未获取到当日日报'
+                }
+
+        # 读取文件内容
+        with open(file_path, 'r', encoding='utf-8') as file:
+            content = file.read()
+
+        print(content)
+        return {
+            'data': {
+                'content': content,
+                'tradeDate': trade_date,
+                'tradeDatePrev': trade_date_prev
+            },
+            'code': 200,
+            'msg': '成功'
+        }
+
+    except Exception as e:
+        return {
+            'data': {
+                'content': None,
+                'tradeDate': trade_date,
+                'tradeDatePrev': trade_date_prev
+            },
+            'code': 500,
+            'msg': f'获取当日日报失败: {str(e)}'
         }, 500
