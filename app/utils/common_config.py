@@ -1,2 +1,5 @@
-# todo调试时设置为quant，发布时改为空
+import sys
+# 根据不同的系统，设置不同的路径
 prodPath = ''
+if sys.platform.startswith('darwin'):
+    isProd = 'quant/'
