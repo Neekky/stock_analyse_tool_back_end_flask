@@ -10,7 +10,7 @@ from flask_cors import CORS
 def create_app():
     app = Flask(__name__)
     # app.config.from_object(config_class)
-    CORS(app, supports_credentials=True, origins=["http://127.0.0.1:8100", "https://www.mfuture.fun"])
+    CORS(app, supports_credentials=True, origins=["http://127.0.0.1:8100", "https://www.mfuture.fun", "https://mfuture.fun"])
 
     # 初始化数据库
     # from app.models import db
