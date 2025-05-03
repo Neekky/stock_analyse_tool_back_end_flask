@@ -472,6 +472,61 @@ def get_trade_date():
         }
 
 
+# 获取股票历史K线数据
+@all_info_bp.route('/stock_history', methods=["GET"])
+def get_stock_history():
+    try:
+        # 获取请求参数，设置默认值
+        symbol = request.args.get("symbol") or ''
+        period = request.args.get("period") or 'daily'
+        start_date = request.args.get("start_date") or singleToday
+        end_date = request.args.get("end_date") or singleToday
+        adjust = request.args.get("adjust") or 'qfq'
+        
+        # 参数验证
+        if not symbol:
+            return {
+                'data': None,
+                'code': 400,
+                'msg': '股票代码不能为空'
+            }, 400
+            
+        # 调用akshare获取股票历史数据
+        stock_hist_df = ak.stock_zh_a_hist(
+            symbol=symbol,
+            period=period,
+            start_date=start_date,
+            end_date=end_date,
+            adjust=adjust
+        )
+        
+        # 检查是否获取到数据
+        if stock_hist_df.empty:
+            return {
+                'data': None,
+                'code': 404,
+                'msg': '未找到符合条件的数据'
+            }, 200
+            
+        # 转换为JSON格式
+        stock_hist_data = stock_hist_df.to_json(orient="records", force_ascii=False)
+        
+        # 返回成功响应
+        return {
+            'data': stock_hist_data,
+            'code': 200,
+            'msg': '成功'
+        }, 200
+        
+    except Exception as e:
+        # 异常处理
+        return {
+            'data': None,
+            'code': 500,
+            'msg': f'获取股票历史数据失败: {str(e)}'
+        }, 200
+
+
 # 使用akshare请求股债利差数据
 @all_info_bp.route('/get_stock_ebs_lg', methods=["GET"])
 def get_stock_ebs_lg():
