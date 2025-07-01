@@ -9,7 +9,7 @@ import akshare as ak
 import datetime
 from config import root_path
 import pywencai
-from app.utils.index import requestForNew, clean_json, remove_field_from_objects
+from app.utils.index import requestForNew, clean_json, remove_field_from_objects, requestForQKA
 import time
 
 import asyncio
@@ -102,7 +102,7 @@ async def fetch_stock_data(session, stockCode, period, start_date, end_date, adj
 async def fetch_financial_data(session, stockCode, marketId):
     try:
         reqUrl = f'https://basic.10jqka.com.cn/basicapi/finance/stock/index/single/?code={stockCode}&market={marketId}&id=parent_holder_net_profit&period=0&locale=zh_CN'
-        content = requestForNew(reqUrl).json()
+        content = requestForQKA(reqUrl).json()
 
         if not content:
             return None, '接口获取成功，没有内容'
@@ -386,7 +386,7 @@ def get_hot_plate_stock_data():
             'msg': '未传递板块id'
         }
 
-    content = requestForNew('https://eq.10jqka.com.cn/plateTimeSharing/plateIndexData/%s.txt' % pid).json()
+    content = requestForQKA('https://eq.10jqka.com.cn/plateTimeSharing/plateIndexData/%s.txt' % pid).json()
 
     if not content:
         response = {
