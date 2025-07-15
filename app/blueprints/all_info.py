@@ -135,13 +135,13 @@ async def fetch_all_data(stockCode, marketId, start_date, end_date, period, adju
     async with aiohttp.ClientSession() as session:
         stock_data_task = fetch_stock_data(session, stockCode, period, start_date, end_date, adjust)
         financial_data_task = fetch_financial_data(session, stockCode, marketId)
-        # roe_data_task = fetch_roe_data(session, stockCode, marketId)
+        roe_data_task = fetch_roe_data(session, stockCode, marketId)
 
         stock_data, stock_error = await stock_data_task
         financial_data, finance_error = await financial_data_task
-        # roe_data, roe_error = await roe_data_task
+        roe_data, roe_error = await roe_data_task
 
-        return stock_data, stock_error, financial_data, finance_error
+        return stock_data, stock_error, financial_data, finance_error, roe_data, roe_error
 
 
 @all_info_bp.route('/query_profit', methods=["GET"])
@@ -165,7 +165,7 @@ def query_profit():
         asyncio.set_event_loop(loop)
 
         # 这里请求了股票K线、股票的归母净利润数据、ROE数据
-        stock_data, stock_error, financial_data, finance_error = loop.run_until_complete(
+        stock_data, stock_error, financial_data, finance_error, roe_data, roe_error = loop.run_until_complete(
             fetch_all_data(stockCode, marketId, start_date, end_date, period, adjust)
         )
 
@@ -184,11 +184,11 @@ def query_profit():
         else:
             data['query_profit'] = financial_data['data']['data'][:9]
 
-        # if roe_error:
-        #     errorInfo['roe_error'] = roe_error
-        #     data['roe_data'] = []
-        # else:
-        #     data['roe_data'] = roe_data['data']['data'][:9]
+        if roe_error:
+            errorInfo['roe_error'] = roe_error
+            data['roe_data'] = []
+        else:
+            data['roe_data'] = roe_data['data']['data'][:9]
 
         response = {
             'data': data,
