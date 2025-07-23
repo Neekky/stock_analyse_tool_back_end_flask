@@ -24,7 +24,13 @@ def requestForNew(url, max_try_num=10, sleep_time=5):
 
 def requestForQKA(url, max_try_num=10, sleep_time=5):
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36 Edg/97.0.1072.62'
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Referer": "http://q.10jqka.com.cn/",
+        "Host": "eq.10jqka.com.cn",
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "Connection": "keep-alive",
+        "X-Requested-With": "XMLHttpRequest"
     }
     for i in range(max_try_num):
         response = requests.get(url, headers=headers, timeout=30, verify=False)
