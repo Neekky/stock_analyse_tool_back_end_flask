@@ -555,6 +555,94 @@ def get_stock_ebs_lg():
             'msg': f'获取股债利差数据失败: {str(e)}'
         }, 500
 
+@all_info_bp.route('/get_qka_data', methods=["GET"])
+def get_plate_time_sharing_data():
+    """
+    获取指定板块的分时数据
+
+    参数:
+    plate_code -- 板块代码 (例如: 885427)
+    max_retries -- 最大重试次数 (默认: 3)
+    backoff_factor -- 重试等待时间因子 (默认: 0.5)
+
+    返回:
+    成功: 解析后的JSON数据
+    失败: None (会打印错误信息)
+    """
+    url = request.args.get("url") or ''
+
+    max_retries=3
+    backoff_factor=0.5
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Host": "eq.10jqka.com.cn",
+        "Accept": "text/plain, */*; q=0.01",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "Connection": "keep-alive",
+        "X-Requested-With": "XMLHttpRequest",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-site"
+    }
+
+    # 创建带有重试机制的会话
+    session = requests.Session()
+
+    # 配置重试策略
+    retry_strategy = Retry(
+        total=max_retries,
+        backoff_factor=backoff_factor,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"]
+    )
+
+    # 创建适配器并挂载到会话
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+
+    # 修正这里：使用 session.mount 而不是 session.mounts
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+
+    try:
+        # 发送请求
+        response = session.get(
+            url,
+            headers=headers,
+            timeout=10
+        )
+        response.raise_for_status()  # 检查HTTP错误状态码
+        # 处理响应内容
+        content = response.text.strip()
+        print(content)
+        # 尝试解析JSON
+        try:
+            # 有些响应可能是JSONP格式，需要处理
+            if content.startswith("/*") and content.endswith("*/"):
+                content = content[2:-2].strip()
+
+            # 尝试解析JSON
+            return json.loads(content)
+        except json.JSONDecodeError:
+            # 如果解析失败，尝试提取可能的JSON部分
+            if '{' in content and '}' in content:
+                start = content.find('{')
+                end = content.rfind('}') + 1
+                try:
+                    return json.loads(content[start:end])
+                except json.JSONDecodeError:
+                    pass
+
+            print(f"JSON解析失败，原始响应: {content[:200]}...")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        print(f"请求失败: {e}")
+        return None
+    finally:
+        session.close()  # 确保关闭会话
+
 
 # 将服务器本地的每日日报返回给前端
 @all_info_bp.route('/get_daily_report', methods=["GET"])
