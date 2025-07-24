@@ -711,3 +711,37 @@ def get_daily_report():
             'code': 500,
             'msg': f'获取当日日报失败: {str(e)}'
         }, 500
+
+
+def get_latest_trade_date():
+    """
+    获取A股最新交易日期的函数
+    返回格式: 字符串格式的日期 (YYYY-MM-DD)
+    """
+    try:
+        # 获取上证指数日线数据
+        df = ak.stock_zh_index_daily(symbol="sh000001")
+        
+        # 检查数据是否为空
+        if df.empty:
+            return None
+            
+        # 获取最后一条数据的日期（最新交易日）
+        latest_date = df.iloc[-1]['date']
+        
+        # 转换为字符串格式
+        return latest_date.strftime('%Y-%m-%d')
+        
+    except Exception as e:
+        print(f"获取数据时出错: {e}")
+        return None
+
+@all_info_bp.route('/latest_trade_date', methods=['GET'])
+def latest_trade_date():
+    """Flask接口：返回最新交易日期"""
+    trade_date = get_latest_trade_date()
+    
+    if trade_date:
+        return trade_date
+    else:
+        return '请求交易日期错误', 500
