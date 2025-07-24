@@ -11,6 +11,10 @@ from config import root_path
 import pywencai
 from app.utils.index import requestForNew, clean_json, remove_field_from_objects, requestForQKA
 import time
+import requests
+import json
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 import asyncio
 import aiohttp
