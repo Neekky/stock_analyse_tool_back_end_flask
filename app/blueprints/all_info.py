@@ -293,7 +293,6 @@ def wencai_stock_info():
             if res is None:
                 res = {}  # Default DataFrame
 
-            print(res)
             if res['txt2'] is None:
                 desc = ''
             else:
@@ -619,7 +618,6 @@ def get_plate_time_sharing_data():
         response.raise_for_status()  # 检查HTTP错误状态码
         # 处理响应内容
         content = response.text.strip()
-        print(content)
         # 尝试解析JSON
         try:
             # 有些响应可能是JSONP格式，需要处理
@@ -690,7 +688,6 @@ def get_daily_report():
         with open(file_path, 'r', encoding='utf-8') as file:
             content = file.read()
 
-        print(content)
         return {
             'data': {
                 'content': content,
