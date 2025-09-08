@@ -733,6 +733,34 @@ def get_latest_trade_date():
         print(f"获取数据时出错: {e}")
         return None
 
+def get_previous_nth_trade_day(n):
+    """
+    获取前第N个交易日的函数
+    返回格式: 字符串格式的日期 (YYYY-MM-DD)
+    """
+    try:
+        # 获取上证指数日线数据
+        df = ak.stock_zh_index_daily(symbol="sh000001")
+        
+        # 检查数据是否为空
+        if df.empty:
+            return None
+            
+        # 检查n是否超出数据范围
+        if n >= len(df):
+            return None
+            
+        # 获取倒数第n+1条数据的日期（因为iloc[-1]是最后一条，iloc[-2]是倒数第二条，以此类推）
+        previous_date = df.iloc[-(n+1)]['date']
+        
+        # 转换为字符串格式
+        return previous_date.strftime('%Y-%m-%d')
+        
+    except Exception as e:
+        print(f"获取数据时出错: {e}")
+        return None
+
+
 @all_info_bp.route('/latest_trade_date', methods=['GET'])
 def latest_trade_date():
     """Flask接口：返回最新交易日期"""
@@ -742,3 +770,36 @@ def latest_trade_date():
         return trade_date
     else:
         return '请求交易日期错误', 500
+
+
+@all_info_bp.route('/previous_nth_trade_day', methods=['GET'])
+def previous_nth_trade_day():
+    """Flask接口：返回前第N个交易日"""
+    try:
+        n = request.args.get('n', type=int, default=1)
+        
+        if n <= 0:
+            return jsonify({
+                'error': '参数n必须大于0',
+                'code': 400
+            }), 400
+            
+        trade_date = get_previous_nth_trade_day(n)
+        
+        if trade_date:
+            return jsonify({
+                'data': trade_date,
+                'code': 200,
+                'msg': '成功'
+            })
+        else:
+            return jsonify({
+                'error': '获取交易日期失败或n超出数据范围',
+                'code': 500
+            }), 500
+            
+    except ValueError:
+        return jsonify({
+            'error': '参数n必须是整数',
+            'code': 400
+        }), 400
