@@ -777,12 +777,6 @@ def previous_nth_trade_day():
     """Flask接口：返回前第N个交易日"""
     try:
         n = request.args.get('n', type=int, default=1)
-        
-        if n <= 0:
-            return jsonify({
-                'error': '参数n必须大于0',
-                'code': 400
-            }), 400
             
         trade_date = get_previous_nth_trade_day(n)
         
