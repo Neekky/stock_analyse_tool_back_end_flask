@@ -709,6 +709,48 @@ def get_daily_report():
             'msg': f'获取当日日报失败: {str(e)}'
         }, 500
 
+# 将服务器本地的大盘周期分析数据返回给前端
+@all_info_bp.route('/get_index_cycle_analysis', methods=["GET"])
+def get_index_cycle_analysis():
+    # 构建文件路径
+    file_path = f'{root_path}/stock_analyse_tool_data_crawl/database/自研分析数据/大盘周期分析.csv'
+    try:
+        # 检查文件是否存在
+        if not os.path.exists(file_path):
+            return {
+                'data': {
+                    'content': None,
+                },
+                'code': 404,
+                'msg': '未获取到大盘周期分析数据'
+            }   
+        df = pd.read_csv(file_path)
+        
+        # 去除指定的列：open、high、close、low、amount、RSI、volume
+        columns_to_drop = ['open', 'high', 'close', 'low', 'amount', 
+                           'RSI', 'volume', 'MACD_histogram', 'MACD', 
+                           'MACD_signal', 'MA_long', 'MA_medium', 'MA_short', 
+                           'BB_lower', 'BB_middle', 'BB_upper', 'BB_width', 
+                           'EMA_medium', 'EMA_short']
+        # 只删除存在的列，避免KeyError
+        existing_columns_to_drop = [col for col in columns_to_drop if col in df.columns]
+        if existing_columns_to_drop:
+            df = df.drop(columns=existing_columns_to_drop)
+        
+        jsonDf = df.to_json(orient="records", force_ascii=False)
+        
+        return {
+            'data': jsonDf,
+            'code': 200,
+            'msg': '成功'
+        }
+
+    except Exception as e:
+        return {
+            'data': None,
+            'code': 500,
+            'msg': f'获取大盘周期分析数据失败: {str(e)}'
+        }, 500
 
 def get_latest_trade_date():
     """
@@ -797,3 +839,102 @@ def previous_nth_trade_day():
             'error': '参数n必须是整数',
             'code': 400
         }), 400
+
+
+def get_market_pe_lg(symbol="上证", start_date=None):
+    """
+    获取市场市盈率数据的函数
+    参数:
+        symbol: 市场标识，默认"上证"
+        start_date: 起始日期，格式为YYYY-MM-DD，默认None表示不过滤
+    返回格式: DataFrame格式的市场市盈率数据，包含日期、指数、平均市盈率
+    """
+    try:
+        # 调用akshare获取市场市盈率数据
+        df = ak.stock_market_pe_lg(symbol=symbol)
+        
+        # 检查数据是否为空
+        if df.empty:
+            return None
+        
+        # 如果指定了起始日期，进行日期过滤
+        if start_date:
+            try:
+                # 确保日期列是datetime类型
+                df['日期str'] = df['日期']
+                df['日期'] = pd.to_datetime(df['日期'])
+                # 过滤2018-01-01之后的数据
+                df = df[df['日期'] >= pd.to_datetime(start_date)]
+                
+                # 如果过滤后数据为空，返回None
+                if df.empty:
+                    return None
+                    
+            except Exception as date_error:
+                print(f"日期过滤出错: {date_error}")
+                # 如果日期处理出错，返回原始数据
+                return df
+            
+        return df
+        
+    except Exception as e:
+        print(f"获取市场市盈率数据时出错: {e}")
+        return None
+
+
+@all_info_bp.route('/market_pe_lg', methods=['GET'])
+def market_pe_lg():
+    """
+    Flask接口：返回市场市盈率数据
+    支持参数:
+        symbol: 市场标识，默认"上证"，可选值如"深证"等
+        start_date: 起始日期，格式为YYYY-MM-DD，默认None表示不过滤
+    """
+    try:
+        # 获取请求参数
+        symbol = request.args.get('symbol', type=str, default="上证")
+        start_date = request.args.get('start_date', type=str, default=None)
+        
+        # 参数验证
+        if not symbol or not isinstance(symbol, str):
+            return jsonify({
+                'error': '参数symbol必须是字符串',
+                'code': 400
+            }), 400
+        
+        # 验证日期格式（如果提供了start_date）
+        if start_date:
+            try:
+                pd.to_datetime(start_date)
+            except ValueError:
+                return jsonify({
+                    'error': '参数start_date必须是有效的日期格式（YYYY-MM-DD）',
+                    'code': 400
+                }), 400
+        
+        # 调用函数获取数据
+        pe_data = get_market_pe_lg(symbol, start_date)
+        
+        if pe_data is not None:
+            # 转换为JSON格式
+            json_data = pe_data.to_json(orient="records", force_ascii=False, date_format='iso')
+            
+            return jsonify({
+                'data': json_data,
+                'code': 200,
+                'msg': '成功',
+                'symbol': symbol,
+                'start_date': start_date if start_date else '不过滤',
+                'data_count': len(pe_data)
+            })
+        else:
+            return jsonify({
+                'error': '获取市场市盈率数据失败或指定日期范围内无数据',
+                'code': 500
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'error': f'服务器内部错误: {str(e)}',
+            'code': 500
+        }), 500
