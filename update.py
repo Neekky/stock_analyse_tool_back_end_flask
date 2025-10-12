@@ -14,13 +14,13 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 # ===获取项目根目录
 _ = os.path.abspath(os.path.dirname(__file__))  # 返回当前文件路径
 
-def cal_percent_by_index(index, code, path):
+def cal_percent_by_index(index, code, start_date, path):
     trade_date = getDate()
     # 如果今天不是交易日，那么就结束代码执行
     if trade_date != singleToday:
         exit()
     # resdf = pd.DataFrame()
-    resdf = batching_entry(index, code, '2018-01-01', singleToday)
+    resdf = batching_entry(index, code, start_date, singleToday)
 
     # if code == 'hkHSI':
     #     resdf = hk_hsi_batching_entry(code, '2018-01-01', singleToday)
@@ -37,9 +37,9 @@ def cal_percent_by_index(index, code, path):
         print("DataFrame 无效或没有数据，不进行导出。")
 
 
-cal_percent_by_index('index','sh000001', '/index_top_bottom_percent.csv')
+cal_percent_by_index('index','sh000001', '2007-01-01', '/index_top_bottom_percent.csv')
 
-cal_percent_by_index('index','hkHSI', '/hk_hsi_top_bottom_percent.csv')
+cal_percent_by_index('index','hkHSI', '2018-01-01', '/hk_hsi_top_bottom_percent.csv')
 
-cal_percent_by_index('index','us.DJI', '/us_dji_top_bottom_percent.csv')
+cal_percent_by_index('index','us.DJI', '2018-01-01', '/us_dji_top_bottom_percent.csv')
 
