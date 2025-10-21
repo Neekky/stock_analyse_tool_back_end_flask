@@ -113,7 +113,6 @@ async def fetch_financial_data(session, stockCode, marketId):
 
         if content['status_msg'] != 'success':
             return None, '接口获取成功，后端报错%s' % content['status_msg']
-
         return content, None
     except Exception as e:
         return None, f"Fetching financial data failed: {str(e)}"
@@ -137,15 +136,16 @@ async def fetch_roe_data(session, stockCode, marketId):
 
 async def fetch_all_data(stockCode, marketId, start_date, end_date, period, adjust):
     async with aiohttp.ClientSession() as session:
-        stock_data_task = fetch_stock_data(session, stockCode, period, start_date, end_date, adjust)
+        # stock_data_task = fetch_stock_data(session, stockCode, period, start_date, end_date, adjust)
         financial_data_task = fetch_financial_data(session, stockCode, marketId)
         roe_data_task = fetch_roe_data(session, stockCode, marketId)
 
-        stock_data, stock_error = await stock_data_task
+        # stock_data, stock_error = await stock_data_task
         financial_data, finance_error = await financial_data_task
         roe_data, roe_error = await roe_data_task
 
-        return stock_data, stock_error, financial_data, finance_error, roe_data, roe_error
+        # return stock_data, stock_error, financial_data, finance_error, roe_data, roe_error
+        return financial_data, finance_error, roe_data, roe_error
 
 
 @all_info_bp.route('/query_profit', methods=["GET"])
@@ -169,18 +169,18 @@ def query_profit():
         asyncio.set_event_loop(loop)
 
         # 这里请求了股票K线、股票的归母净利润数据、ROE数据
-        stock_data, stock_error, financial_data, finance_error, roe_data, roe_error = loop.run_until_complete(
+        financial_data, finance_error, roe_data, roe_error = loop.run_until_complete(
             fetch_all_data(stockCode, marketId, start_date, end_date, period, adjust)
         )
 
         errorInfo = {}
         data = {}
 
-        if stock_error:
-            errorInfo['stock_error'] = stock_error
-            data['stock_intraday_em_data'] = []
-        else:
-            data['stock_intraday_em_data'] = stock_data
+        # if stock_error:
+        #     errorInfo['stock_error'] = stock_error
+        #     data['stock_intraday_em_data'] = []
+        # else:
+        #     data['stock_intraday_em_data'] = stock_data
 
         if finance_error:
             errorInfo['finance_error'] = finance_error
@@ -206,7 +206,7 @@ def query_profit():
             'data': {
                 'stock_intraday_em_data': [],
                 'query_profit': [],
-                # 'roe_data': []
+                'roe_data': []
             },
             'code': 500,
             'msg': f'发生异常: {str(e)}'
