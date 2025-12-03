@@ -16,6 +16,7 @@ from app.models.stock_limit_movement import StockLimitMovement
 import time
 
 singleToday = datetime.datetime.now().strftime("%Y%m%d")
+singleToday2 = datetime.datetime.now().strftime("%Y-%m-%d")
 
 stock_selection_model_bp = Blueprint('stock_selection_model', __name__, url_prefix='/stock_selection_model')
 
@@ -50,6 +51,7 @@ def get_limit_kdj_model_data():
         }
         return response
 
+
 # 获取涨停的概念龙头数据
 @stock_selection_model_bp.route('/get_limit_leading_model_data', methods=['GET'])
 def get_limit_leading_model_data():
@@ -66,6 +68,37 @@ def get_limit_leading_model_data():
         cleaned_data = clean_json(result)
 
         cleaned_data = remove_field_from_objects(cleaned_data, '涨停明细数据')
+
+        response = {
+            'code': 200,
+            'data': cleaned_data,
+            'msg': '请求成功'
+        }
+        return response
+    except Exception as e:
+        response = {
+            'code': 500,
+            'data': [],
+            'msg': '请求发生错误'
+        }
+        return response
+
+# 获取符合缩量条件的股票数据
+@stock_selection_model_bp.route('/get_volume_decrease_data', methods=['GET'])
+def get_volume_decrease_data():
+    try:
+        date = request.args.get("date") or singleToday2
+        # 根据日期，找到对应的数据进行返回
+        base_path = root_path + '/stock_analyse_tool_data_crawl/database/每日日报/' + date + '/缩量优选.csv'
+
+        df = pd.read_csv(base_path)
+        
+        df['代码'] = df['代码'].astype(str)
+
+        result = df.to_json(orient="records", force_ascii=False)
+
+        # 处理数据
+        cleaned_data = clean_json(result)
 
         response = {
             'code': 200,
