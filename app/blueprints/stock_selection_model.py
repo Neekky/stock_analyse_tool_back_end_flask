@@ -1,6 +1,5 @@
 import sys
 
-from app.utils.common_config import prodPath
 from app.utils.index import clean_json, remove_field_from_objects
 
 sys.path.append('/usr/src/stock_analyse_tool_back_end_flask')
@@ -8,11 +7,7 @@ import pandas as pd
 import akshare as ak
 import datetime
 from config import root_path
-import pywencai
-import json
-from flask import Blueprint, jsonify, request
-from app.models import db
-from app.models.stock_limit_movement import StockLimitMovement
+from flask import Blueprint, request
 import time
 
 singleToday = datetime.datetime.now().strftime("%Y%m%d")
