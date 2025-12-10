@@ -86,9 +86,11 @@ def get_volume_decrease_data():
         # 根据日期，找到对应的数据进行返回
         base_path = root_path + '/stock_analyse_tool_data_crawl/database/每日日报/' + date + '/缩量优选.csv'
 
-        df = pd.read_csv(base_path)
+        # 读取CSV文件时指定股票编码列为字符串类型，防止前导零丢失
+        df = pd.read_csv(base_path, dtype={'代码': str})
         
-        df['代码'] = df['代码'].astype(str)
+        # 确保股票代码为6位数字符串，补全前导零
+        df['代码'] = df['代码'].astype(str).str.zfill(6)
 
         result = df.to_json(orient="records", force_ascii=False)
 

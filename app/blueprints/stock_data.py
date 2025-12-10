@@ -1,6 +1,5 @@
 import os
 import sys
-import pywencai
 
 from app.utils.common_config import prodPath
 from app.utils.trend_analysis import analyze_trend, analyze_index, batching_entry
