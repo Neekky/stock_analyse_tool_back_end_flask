@@ -101,23 +101,30 @@ def get_volume_decrease_data():
         date_folders = glob.glob(os.path.join(base_dir, '*'))
         for folder in date_folders:
             folder_name = os.path.basename(folder)
-            if folder_name.isdigit() and len(folder_name) == 8:  # 检查是否为8位数字日期
+            # 检查是否为YYYY-MM-DD格式的日期
+            try:
+                # 尝试解析为日期
+                datetime.datetime.strptime(folder_name, "%Y-%m-%d")
                 all_dates.append(folder_name)
+            except ValueError:
+                # 不是有效的日期格式，跳过
+                continue
         
         # 按日期排序
-        all_dates.sort()
+        all_dates.sort(key=lambda x: datetime.datetime.strptime(x, "%Y-%m-%d"))
         
         # 找到当前日期在列表中的位置
+        previous_dates = []
         if date in all_dates:
             date_index = all_dates.index(date)
             # 获取前两个交易日（如果存在）
-            previous_dates = []
             if date_index >= 1:
                 previous_dates.append(all_dates[date_index-1])
             if date_index >= 2:
                 previous_dates.append(all_dates[date_index-2])
         else:
-            previous_dates = []
+            # 如果当前日期不在列表中，可能数据文件夹有缺失
+            print(f"警告：当前日期 {date} 不在找到的日期列表中")
         
         # 读取前两日的数据
         previous_codes = set()
@@ -132,11 +139,14 @@ def get_volume_decrease_data():
                     print(f"读取{prev_date}数据失败: {e}")
         
         # 过滤掉在前两日出现过的股票代码
-        if previous_codes:
+        filtered_df = df.copy()
+        filtered_count = 0
+        if previous_codes and '代码' in df.columns:
             mask = ~df['代码'].isin(previous_codes)
-            df = df[mask].reset_index(drop=True)
+            filtered_df = df[mask].reset_index(drop=True)
+            filtered_count = len(df) - len(filtered_df)
         
-        result = df.to_json(orient="records", force_ascii=False)
+        result = filtered_df.to_json(orient="records", force_ascii=False)
         
         # 处理数据
         cleaned_data = clean_json(result)
@@ -146,7 +156,8 @@ def get_volume_decrease_data():
             'data': cleaned_data,
             'msg': '请求成功',
             'previous_dates': previous_dates,
-            'filtered_count': len(previous_codes)
+            'filtered_count': filtered_count,
+            'current_count': len(filtered_df),
         }
         return response
     except Exception as e:
@@ -232,4 +243,3 @@ def get_bottom_etf_model_data():
 
     # This line should never be reached, but just in case
     return {"code": 500, "msg": "Unexpected error occurred"}, 500
-
