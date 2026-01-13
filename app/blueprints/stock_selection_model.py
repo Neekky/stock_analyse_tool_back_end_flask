@@ -88,8 +88,9 @@ def get_volume_decrease_data():
         date = request.args.get("date") or singleToday2
         
         # 构建基础路径
-        base_dir = root_path + '/stock_analyse_tool_data_crawl/database/每日日报/'
-        target_path = os.path.join(base_dir, date, '缩量优选.csv')
+        base_dir = os.path.join(root_path, 'stock_analyse_tool_data_crawl', 'database', '每日日报')
+        target_path = os.path.join(root_path, 'stock_analyse_tool_data_crawl',
+                             'database', '每日日报', date,'缩量优选.csv')
         
         # 读取目标日期的数据
         df = pd.read_csv(target_path, dtype={'代码': str})
