@@ -82,7 +82,7 @@ def get_limit_leading_model_data():
     
 
 # 获取符合缩量条件的股票数据
-@stock_selection_model_bp.route('/get_volume_decrease_data_backup', methods=['GET'])
+@stock_selection_model_bp.route('/get_volume_decrease_data', methods=['GET'])
 def get_volume_decrease_data():
     try:
         date = request.args.get("date") or singleToday2
@@ -158,8 +158,8 @@ def get_volume_decrease_data():
         return response
 
 # 获取符合缩量条件的股票数据
-@stock_selection_model_bp.route('/get_volume_decrease_data', methods=['GET'])
-def get_volume_decrease_data():
+@stock_selection_model_bp.route('/get_volume_decrease_data_backup', methods=['GET'])
+def get_volume_decrease_data_backup():
     try:
         date = request.args.get("date") or singleToday2
         # 根据日期，找到对应的数据进行返回
