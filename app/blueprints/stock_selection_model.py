@@ -9,6 +9,8 @@ import datetime
 from config import root_path
 from flask import Blueprint, request
 import time
+import os
+import glob
 
 singleToday = datetime.datetime.now().strftime("%Y%m%d")
 singleToday2 = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -77,9 +79,86 @@ def get_limit_leading_model_data():
             'msg': '请求发生错误'
         }
         return response
+    
 
 # 获取符合缩量条件的股票数据
 @stock_selection_model_bp.route('/get_volume_decrease_data', methods=['GET'])
+def get_volume_decrease_data():
+    try:
+        date = request.args.get("date") or singleToday2
+        
+        # 构建基础路径
+        base_dir = root_path + '/stock_analyse_tool_data_crawl/database/每日日报/'
+        target_path = os.path.join(base_dir, date, '缩量优选.csv')
+        
+        # 读取目标日期的数据
+        df = pd.read_csv(target_path, dtype={'代码': str})
+        df['代码'] = df['代码'].astype(str).str.zfill(6)
+        
+        # 获取所有可用的日期文件夹
+        all_dates = []
+        date_folders = glob.glob(os.path.join(base_dir, '*'))
+        for folder in date_folders:
+            folder_name = os.path.basename(folder)
+            if folder_name.isdigit() and len(folder_name) == 8:  # 检查是否为8位数字日期
+                all_dates.append(folder_name)
+        
+        # 按日期排序
+        all_dates.sort()
+        
+        # 找到当前日期在列表中的位置
+        if date in all_dates:
+            date_index = all_dates.index(date)
+            # 获取前两个交易日（如果存在）
+            previous_dates = []
+            if date_index >= 1:
+                previous_dates.append(all_dates[date_index-1])
+            if date_index >= 2:
+                previous_dates.append(all_dates[date_index-2])
+        else:
+            previous_dates = []
+        
+        # 读取前两日的数据
+        previous_codes = set()
+        for prev_date in previous_dates:
+            prev_path = os.path.join(base_dir, prev_date, '缩量优选.csv')
+            if os.path.exists(prev_path):
+                try:
+                    df_prev = pd.read_csv(prev_path, dtype={'代码': str})
+                    df_prev['代码'] = df_prev['代码'].astype(str).str.zfill(6)
+                    previous_codes.update(df_prev['代码'].tolist())
+                except Exception as e:
+                    print(f"读取{prev_date}数据失败: {e}")
+        
+        # 过滤掉在前两日出现过的股票代码
+        if previous_codes:
+            mask = ~df['代码'].isin(previous_codes)
+            df = df[mask].reset_index(drop=True)
+        
+        result = df.to_json(orient="records", force_ascii=False)
+        
+        # 处理数据
+        cleaned_data = clean_json(result)
+        
+        response = {
+            'code': 200,
+            'data': cleaned_data,
+            'msg': '请求成功',
+            'previous_dates': previous_dates,
+            'filtered_count': len(previous_codes)
+        }
+        return response
+    except Exception as e:
+        print(f"处理缩量优选数据时发生错误: {e}")
+        response = {
+            'code': 500,
+            'data': [],
+            'msg': f'请求发生错误: {str(e)}'
+        }
+        return response
+
+# 获取符合缩量条件的股票数据
+@stock_selection_model_bp.route('/get_volume_decrease_data_backup', methods=['GET'])
 def get_volume_decrease_data():
     try:
         date = request.args.get("date") or singleToday2
@@ -152,5 +231,4 @@ def get_bottom_etf_model_data():
 
     # This line should never be reached, but just in case
     return {"code": 500, "msg": "Unexpected error occurred"}, 500
-
 
