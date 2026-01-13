@@ -141,7 +141,12 @@ def get_volume_decrease_data():
         # 过滤掉在前两日出现过的股票代码
         filtered_df = df.copy()
         filtered_count = 0
+        # 找出哪些股票会被过滤掉
+        filtered_codes = []
         if previous_codes and '代码' in df.columns:
+            # 找出在当前数据中也在前两日数据中的股票
+            filtered_codes = df[df['代码'].isin(previous_codes)]['代码'].tolist()
+            
             mask = ~df['代码'].isin(previous_codes)
             filtered_df = df[mask].reset_index(drop=True)
             filtered_count = len(df) - len(filtered_df)
@@ -156,6 +161,7 @@ def get_volume_decrease_data():
             'data': cleaned_data,
             'msg': '请求成功',
             'previous_dates': previous_dates,
+            'filtered_codes': filtered_codes,  # 只返回被过滤的股票代码列表
             'filtered_count': filtered_count,
             'current_count': len(filtered_df),
         }
