@@ -2,7 +2,6 @@ import sys
 import pandas as pd
 import os
 sys.path.append('/usr/src/stock_analyse_tool_back_end_flask')
-import datetime
 
 from app.utils.index import getDate, singleToday
 from app.utils.trend_analysis import batching_entry

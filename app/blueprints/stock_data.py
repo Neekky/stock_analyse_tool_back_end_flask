@@ -4,7 +4,11 @@ import sys
 from app.utils.common_config import prodPath
 from app.utils.trend_analysis import analyze_trend, analyze_index, batching_entry
 
+# 添加目标项目路径到sys.path
+sys.path.append('/Users/cengchao/studyDocument/stock_analyse_tool_data_crawl')
 sys.path.append('/usr/src/stock_analyse_tool_back_end_flask')
+sys.path.append('/usr/src/stock_analyse_tool_data_crawl')
+
 from flask import Blueprint, jsonify
 from app.models.stock_data import StockData
 from flask import request
@@ -12,6 +16,16 @@ import pandas as pd
 import akshare as ak
 import datetime
 from config import root_path
+import tushare as ts
+
+# 导入目标方法
+from data_crawl.large_model.crawler_func.get_xueqiu_index import get_index_trend
+
+TUSHARE_TOKEN = os.environ.get('TUSHARE_TOKEN')
+
+ts.set_token(TUSHARE_TOKEN)
+
+pro = ts.pro_api()
 
 singleToday = datetime.datetime.now().strftime("%Y%m%d")
 
@@ -22,7 +36,7 @@ _ = os.path.abspath(os.path.dirname(__file__))  # 返回当前文件路径
 
 # 获取个股股票K线
 @stock_data_bp.route('/get_stock_k_line', methods=["GET"])
-def get_stock_k_line():  # put application's code here
+def get_stock_k_line():
     # 可以通过 request 的 args 属性来获取参数
     symbol = request.args.get("symbol") or ''
 
@@ -45,6 +59,31 @@ def get_stock_k_line():  # put application's code here
     response = stock_zh_a_hist_df.to_json(orient="records", force_ascii=False)
     return response
 
+@stock_data_bp.route('/get_stock_k_line_tushare', methods=["GET"])
+def get_stock_k_line_tushare():
+    # 可以通过 request 的 args 属性来获取参数
+    ts_code = request.args.get("ts_code") or ''
+
+    if (not ts_code):
+        return 404
+
+    start_date = request.args.get("start_date") or ''
+    adjust = request.args.get("adjust") or 'qfq'
+    end_date = request.args.get("end_date") or ''
+    is_head_end = request.args.get("is_head_end")
+
+    df = ts.pro_bar(ts_code=ts_code, adj=adjust, start_date=start_date, end_date=end_date)
+
+    # 如果is_head_end为1，则只保留第一行和最后一行
+    if (is_head_end == '1' and df.shape[0] > 1):
+        # 只保留stock_zh_a_hist_df的第一行和最后一行
+        df = df.iloc[[0, -1]]
+
+    # 根据时间排序
+    df = df.sort_values('trade_date', ascending=True)
+    
+    response = df.to_json(orient="records", force_ascii=False)
+    return response
 
 # 获取指数K线
 @stock_data_bp.route('/get_index_k_line', methods=["GET"])
@@ -404,3 +443,44 @@ def get_stock_realtime_data():
         return data, 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+# 通过雪球获取指数的k线数据
+@stock_data_bp.route('/get_index_kline_xueqiu', methods=["GET"])
+def get_index_kline_xueqiu():
+    """
+    通过雪球获取指数的k线数据。
+
+    参数:
+        symbol: 指数代码，必需。
+
+    返回:
+        JSON格式的指数k线数据，如果出错，返回相应的HTTP状态码。
+    """
+    symbol = request.args.get("symbol", '').strip()
+    if not symbol:
+        return {"error": "没有传递指数代码"}, 200
+    
+    result = get_index_trend(symbol)
+
+    if result is None:
+        return {"error": "获取指数k线数据失败"}, 200
+
+    if not isinstance(result, pd.DataFrame):
+        return {"error": "获取指数k线数据格式错误"}, 200
+
+    if result.empty:
+        return {"error": "获取指数k线数据为空"}, 200
+
+    # 过滤日期，只保留2024-01-01之后的数据
+    result = result[result['date'] >= '2024-01-01']
+
+    if result.empty:
+        return {"error": "2024-01-01之后无数据"}, 200
+
+    data = {
+        "code": 200,
+        "data": result.to_json(orient="records", force_ascii=False),
+        "msg": "请求成功"
+    }
+    return data, 200
+    
