@@ -471,8 +471,9 @@ def get_index_kline_xueqiu():
     if result.empty:
         return {"error": "获取指数k线数据为空"}, 200
 
-    # 过滤日期，只保留2024-01-01之后的数据
-    result = result[result['date'] >= '2024-01-01']
+    # 过滤日期，只保留2024-01-01之后的数据, 但是SZ159531指数的请求，先不做限制，前端需要完整数据
+    if symbol != 'SZ159531':
+        result = result[result['date'] >= '2024-01-01']
 
     if result.empty:
         return {"error": "2024-01-01之后无数据"}, 200
