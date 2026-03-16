@@ -19,6 +19,9 @@ from urllib3.util.retry import Retry
 import asyncio
 import aiohttp
 
+# 导入交易日期工具
+from app.utils.update_trade import get_latest_trade_date
+
 singleToday = datetime.datetime.now().strftime("%Y%m%d")
 
 all_info_bp = Blueprint('stock_info', __name__, url_prefix='/all_info')
@@ -456,15 +459,28 @@ def get_stock_zh_index_daily():
 @all_info_bp.route('/get_trade_date', methods=["GET"])
 def get_trade_date():
     try:
-        content = requestForNew('https://hq.sinajs.cn/list=sh000001').text
-        data_date = str(content.split(',')[-4])
+        # 优先使用交易日期工具获取最新交易日期
+        data_date = get_latest_trade_date()
 
-        response = {
-            'data': data_date,
-            'code': 200,
-            'msg': '成功'
-        }
-        return response
+        if data_date:
+            response = {
+                'data': data_date,
+                'code': 200,
+                'msg': '成功'
+            }
+            return response
+        else:
+            # 兜底方案：使用新浪财经API获取交易日期
+            print("交易日期工具获取失败，使用新浪财经API作为兜底")
+            content = requestForNew('https://hq.sinajs.cn/list=sh000001').text
+            data_date = str(content.split(',')[-4])
+
+            response = {
+                'data': data_date,
+                'code': 200,
+                'msg': '使用兜底方案获取成功'
+            }
+            return response
 
     except Exception as e:
         # 捕获其他异常并返回错误信息
