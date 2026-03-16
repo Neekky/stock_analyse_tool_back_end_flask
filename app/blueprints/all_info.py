@@ -768,25 +768,32 @@ def get_index_cycle_analysis():
             'msg': f'获取大盘周期分析数据失败: {str(e)}'
         }, 500
 
-def get_latest_trade_date():
+def get_latest_trade_date_page():
     """
     获取A股最新交易日期的函数
     返回格式: 字符串格式的日期 (YYYY-MM-DD)
     """
     try:
-        # 获取上证指数日线数据
-        df = ak.stock_zh_index_daily(symbol="sh000001")
+        # 优先使用交易日期工具获取最新交易日期
+        data_date = get_latest_trade_date()
         
-        # 检查数据是否为空
-        if df.empty:
-            return None
+        if data_date:
+            return data_date
+        else:
+            # 兜底方案：使用上证指数日线数据获取交易日期
+            # 获取上证指数日线数据
+            df = ak.stock_zh_index_daily(symbol="sh000001")
             
-        # 获取最后一条数据的日期（最新交易日）
-        latest_date = df.iloc[-1]['date']
-        
-        # 转换为字符串格式
-        return latest_date.strftime('%Y-%m-%d')
-        
+            # 检查数据是否为空
+            if df.empty:
+                return None
+                
+            # 获取最后一条数据的日期（最新交易日）
+            latest_date = df.iloc[-1]['date']
+            
+            # 转换为字符串格式
+            return latest_date.strftime('%Y-%m-%d')
+            
     except Exception as e:
         print(f"获取数据时出错: {e}")
         return None
@@ -822,7 +829,7 @@ def get_previous_nth_trade_day(n):
 @all_info_bp.route('/latest_trade_date', methods=['GET'])
 def latest_trade_date():
     """Flask接口：返回最新交易日期"""
-    trade_date = get_latest_trade_date()
+    trade_date = get_latest_trade_date_page()
     
     if trade_date:
         return trade_date
