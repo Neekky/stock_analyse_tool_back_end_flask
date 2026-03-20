@@ -1,72 +1,167 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+本文档为 Claude Code (claude.ai/code) 提供操作本代码库的指导。
 
-## Project Overview
+## 项目概述
 
-This is a Flask-based backend API for a stock analysis tool. It provides data endpoints for A-share, Hong Kong, and US stock market analysis. The app reads pre-processed CSV data files from a sibling data crawl project and also calls external data sources (akshare, tushare, xueqiu) in real time.
+这是一个基于 Flask 的股票分析工具后端 API，提供 A 股、港股和美股的数据接口。应用从并行的数据爬取项目中读取预处理的 CSV 数据文件，同时也会实时调用外部数据源（akshare、tushare、雪球）。
 
-## Running the App
+## 运行应用
 
 ```bash
-# Install dependencies
+# 安装依赖
 pip install -r requirements.txt
 
-# Run locally
+# 本地运行
 python run.py
 
-# Run in production (gunicorn)
+# 生产环境运行 (gunicorn)
 gunicorn -w 4 run:flask_app
 ```
 
-The app expects a `TUSHARE_TOKEN` environment variable for tushare API access.
+应用需要设置 `TUSHARE_TOKEN` 环境变量以使用 tushare API。
 
-## Key Configuration
+## 关键配置
 
-- `config.py`: defines `root_path` (project root's parent directory) and `SQLALCHEMY_DATABASE_URI`
-- `app/utils/common_config.py`: defines `prodPath` — on macOS it is `/quant`, empty on Linux. Used to build paths to index CSV data files.
-- `run.py` appends `/usr/src/stock_analyse_tool_back_end_flask` to `sys.path` for production Linux deployment; local dev relies on relative imports.
+- `config.py`：定义 `root_path`（项目根目录的父目录）和 `SQLALCHEMY_DATABASE_URI`
+- `app/utils/common_config.py`：定义 `prodPath` —— macOS 上为 `/quant`，Linux 上为空。用于构建指数 CSV 数据文件的路径
+- `run.py` 会将 `/usr/src/stock_analyse_tool_back_end_flask` 添加到 `sys.path` 以适配生产环境 Linux 部署；本地开发依赖相对导入
 
-## Architecture
+## 架构
 
-### App Factory (`app/__init__.py`)
-Creates the Flask app, configures CORS (allowed origins: localhost:8100 and mfuture.fun), and registers blueprints. The SQLAlchemy DB is initialized but currently commented out — models exist but are not in active use.
+### 应用工厂 (`app/__init__.py`)
+创建 Flask 应用，配置 CORS（允许的源：localhost:8100 和 mfuture.fun），注册蓝图。SQLAlchemy 数据库已初始化但目前被注释掉 —— 模型存在但未实际使用。
 
-### Blueprints (`app/blueprints/`)
-| Blueprint | URL prefix | Responsibility |
+### 蓝图 (`app/blueprints/`)
+| 蓝图 | URL 前缀 | 职责 |
 |---|---|---|
-| `main` | `/` | Health check |
-| `stock_data` | (root) | Stock/index K-line, top-bottom probability, limit-up data |
-| `all_info` | `/all_info` | Comprehensive stock info, profit queries, async data |
-| `stock_selection_model` | `/stock_selection_model` | KDJ screening models |
+| `main` | `/` | 健康检查 |
+| `stock_data` | (根路径) | 股票/指数 K 线、见顶见底概率、涨停数据 |
+| `all_info` | `/all_info` | 综合股票信息、收益查询、异步数据 |
+| `stock_selection_model` | `/stock_selection_model` | KDJ 选股模型 |
 
-### Data Sources
-Two types of data access are mixed throughout:
-1. **File-based**: Reads CSV files from a sibling project at `root_path + '/stock_analyse_tool_data_crawl/database/...'`. The sibling project must exist alongside this one.
-2. **Real-time API**: akshare (`ak.*`), tushare (`ts.pro_api()`), xueqiu (via `data_crawl.large_model.crawler_func.get_xueqiu_index`). The xueqiu module is imported from the sibling data crawl project via `sys.path.append`.
+### 数据源
+项目中混合使用两种数据访问方式：
+1. **文件读取**：从并行项目 `root_path + '/stock_analyse_tool_data_crawl/database/...'` 读取 CSV 文件。该并行项目必须与本项目并存。
+2. **实时 API**：akshare (`ak.*`)、tushare (`ts.pro_api()`)、雪球（通过 `data_crawl.large_model.crawler_func.get_xueqiu_index`）。雪球模块通过 `sys.path.append` 从并行数据爬取项目导入。
 
-### Daily Update Script (`update.py`)
-Runs independently (not via Flask) to recalculate index top/bottom probability CSVs and save them to `database/other/`. Called by cron or manually on trade days. It checks whether today is a trade day via `getDate()` (queries Sina Finance) before running.
+### 每日更新脚本 (`update.py`)
+独立运行（非 Flask 调用），重新计算指数见顶见底概率 CSV 并保存到 `database/other/`。由 cron 或交易日在交易日手动调用。通过 `getDate()` 查询新浪财经确认当天是否为交易日。
 
-### Local Database (`database/other/`)
-Pre-computed CSV files served by the API:
-- `index_top_bottom_percent.csv` — A-share (sh000001) top/bottom signals
-- `hk_hsi_top_bottom_percent.csv` — Hang Seng index signals
-- `us_dji_top_bottom_percent.csv` — Dow Jones signals
-- `a_share_trade_dates.csv` — A-share trade calendar, auto-updated yearly via `app/utils/update_trade.py`
+### 本地数据库 (`database/other/`)
+API 服务的预计算 CSV 文件：
+- `index_top_bottom_percent.csv` —— A股（上证指数）见顶见底信号
+- `hk_hsi_top_bottom_percent.csv` —— 恒生指数信号
+- `us_dji_top_bottom_percent.csv` —— 道琼斯信号
+- `a_share_trade_dates.csv` —— A股交易日历，每年通过 `app/utils/update_trade.py` 自动更新
 
-### Utility Modules (`app/utils/`)
-- `index.py`: HTTP helpers (`requestForNew`, `requestForQKA`), date utilities (`getDate` queries Sina for latest trade date), JSON key cleaning
-- `trend_analysis.py`: Technical analysis on index DataFrames — EMA, MA, trend direction, top/bottom probability (`batching_entry`)
-- `hk_hsi_trend_analysis.py`: Same logic adapted for HK HSI data format
-- `update_trade.py`: Manages `a_share_trade_dates.csv` via akshare, auto-refreshes when the year rolls over
-- `common_config.py`: Platform-aware path prefix
+### 工具模块 (`app/utils/`)
+- `index.py`：HTTP 辅助函数（`requestForNew`、`requestForQKA`）、日期工具（`getDate` 查询新浪财经获取最新交易日）、JSON 键清理
+- `trend_analysis.py`：指数 DataFrame 的技术分析 —— EMA、MA、趋势方向、见顶见底概率（`batching_entry`）
+- `hk_hsi_trend_analysis.py`：适配港股恒指数据格式的相同逻辑
+- `update_trade.py`：通过 akshare 管理 `a_share_trade_dates.csv`，年份变更时自动刷新
+- `common_config.py`：平台相关的路径前缀
 
-## External Dependencies
-- **akshare**: Main market data source (free)
-- **tushare**: Secondary data source (requires token via `TUSHARE_TOKEN` env var)
-- **xueqiu**: Used for index K-line data; requires cookie file `xueqiu_cookies.json` at project root
-- **sibling project** `stock_analyse_tool_data_crawl`: Must exist at `root_path + '/stock_analyse_tool_data_crawl'`; provides crawler functions and pre-built CSV databases
+## 外部依赖
+- **akshare**：主要市场数据源（免费）
+- **tushare**：次要数据源（需要通过 `TUSHARE_TOKEN` 环境变量设置 token）
+- **雪球**：用于指数 K 线数据；需要在项目根目录放置 `xueqiu_cookies.json` cookie 文件
+- **并行项目** `stock_analyse_tool_data_crawl`：必须存在于 `root_path + '/stock_analyse_tool_data_crawl'`；提供爬虫函数和预构建的 CSV 数据库
 
-## Deployment
-CI/CD via `.github/workflows/deploy-flask-app.yml` — SCP files to server then `systemctl restart flaskapp.service`. Currently only triggers on the `cancle` branch (non-standard, intentional). Secrets required: `SERVER_IP`, `SERVER_USER`, `SERVER_PASSWORD`, `SERVER_PORT`, `DEPLOY_PATH`.
+## 部署
+通过 `.github/workflows/deploy-flask-app.yml` 进行 CI/CD —— 通过 SCP 将文件复制到服务器，然后执行 `systemctl restart flaskapp.service`。目前仅在 `cancle` 分支触发（非标准分支名，有意为之）。需要以下 Secrets：`SERVER_IP`、`SERVER_USER`、`SERVER_PASSWORD`、`SERVER_PORT`、`DEPLOY_PATH`。
+
+## 编码规范
+
+### 命名规范
+- **变量/函数**：小写 + 下划线（`snake_case`），如 `get_stock_data`
+- **类名**：首字母大写驼峰（`PascalCase`），如 `StockData`
+- **常量**：全大写 + 下划线，如 `MAX_RETRY_COUNT`
+- **私有成员**：单下划线前缀，如 `_internal_helper`
+- **蓝图**：以 `_bp` 结尾，如 `stock_data_bp`
+
+### 代码格式
+- 使用 **4 空格** 缩进
+- 行长度限制 **88 字符**（Black 默认）
+- 字符串优先使用 **双引号**
+- 使用 Black 格式化代码：`black app/`
+- 使用 isort 排序导入：`isort app/`
+
+### 导入排序
+```python
+# 1. 标准库
+import os
+import sys
+from datetime import datetime
+
+# 2. 第三方库
+import pandas as pd
+from flask import Blueprint, request
+
+# 3. 本地应用导入
+from app.utils.index import getDate
+from config import root_path
+```
+
+### 错误处理
+- 捕获具体异常，避免裸 `except:`
+- API 端点统一返回 JSON 格式错误
+```python
+from flask import jsonify
+
+try:
+    result = process_data()
+except ValueError as e:
+    return jsonify({"code": 400, "msg": str(e)}), 400
+except Exception as e:
+    # 记录详细错误日志
+    current_app.logger.error(f"处理失败: {e}", exc_info=True)
+    return jsonify({"code": 500, "msg": "服务器内部错误"}), 500
+```
+
+### 日志使用
+- 使用 Flask 的 `current_app.logger`，避免裸 `print`
+- 日志级别：DEBUG（开发）、INFO（正常流程）、WARNING（可恢复问题）、ERROR（需要处理）
+- 关键操作记录上下文：用户、股票代码、请求参数
+
+### 文档字符串
+- 使用 Google Style Docstring
+```python
+def get_stock_k_line(symbol: str, start_date: str = "") -> dict:
+    """获取股票 K 线数据。
+
+    Args:
+        symbol: 股票代码，如 "000001"
+        start_date: 开始日期，格式 "YYYYMMDD"，为空则取全部
+
+    Returns:
+        包含 code/data/msg 的字典
+
+    Raises:
+        ValueError: 参数校验失败时抛出
+    """
+```
+
+### API 响应格式
+统一响应结构：
+```python
+{
+    "code": 200,      # HTTP 风格状态码
+    "data": {},       # 成功时返回数据
+    "msg": "请求成功"   # 提示信息
+}
+```
+
+### 类型注解
+- 函数参数和返回值使用类型注解
+```python
+from typing import Optional, List, Dict, Any
+
+def analyze_trend(df: pd.DataFrame) -> tuple[int, int]:
+    ...
+```
+
+### 环境配置
+- 本地开发配置放 `.env` 文件，使用 `python-dotenv` 加载
+- 生产环境使用环境变量
+- 敏感信息（密码、token）绝不硬编码，统一从环境变量读取
