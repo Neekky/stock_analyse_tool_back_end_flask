@@ -84,8 +84,6 @@ API 服务的预计算 CSV 文件：
 - 使用 **4 空格** 缩进
 - 行长度限制 **88 字符**（Black 默认）
 - 字符串优先使用 **双引号**
-- 使用 Black 格式化代码：`black app/`
-- 使用 isort 排序导入：`isort app/`
 
 ### 导入排序
 ```python
@@ -101,22 +99,6 @@ from flask import Blueprint, request
 # 3. 本地应用导入
 from app.utils.index import getDate
 from config import root_path
-```
-
-### 错误处理
-- 捕获具体异常，避免裸 `except:`
-- API 端点统一返回 JSON 格式错误
-```python
-from flask import jsonify
-
-try:
-    result = process_data()
-except ValueError as e:
-    return jsonify({"code": 400, "msg": str(e)}), 400
-except Exception as e:
-    # 记录详细错误日志
-    current_app.logger.error(f"处理失败: {e}", exc_info=True)
-    return jsonify({"code": 500, "msg": "服务器内部错误"}), 500
 ```
 
 ### 日志使用
@@ -161,7 +143,3 @@ def analyze_trend(df: pd.DataFrame) -> tuple[int, int]:
     ...
 ```
 
-### 环境配置
-- 本地开发配置放 `.env` 文件，使用 `python-dotenv` 加载
-- 生产环境使用环境变量
-- 敏感信息（密码、token）绝不硬编码，统一从环境变量读取
